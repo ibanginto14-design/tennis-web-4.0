@@ -1393,42 +1393,26 @@ if st.session_state.page == "LIVE":
     st.markdown("</div>", unsafe_allow_html=True)
 
     
-        st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
-    st.subheader("Acciones manuales", anchor=False)
-    c3, c4 = st.columns(2, gap="small")
+        # Acciones manuales
+st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
+st.subheader("Acciones manuales", anchor=False)
+c3, c4 = st.columns(2, gap="small")
+with c3:
+    if st.button("➕ Juego Yo", use_container_width=True):
+        live.add_game_manual("me")
+        st.rerun()
+    if st.button("➕ Set Yo", use_container_width=True):
+        live.add_set_manual("me")
+        st.rerun()
+with c4:
+    if st.button("➕ Juego Rival", use_container_width=True):
+        live.add_game_manual("opp")
+        st.rerun()
+    if st.button("➕ Set Rival", use_container_width=True):
+        live.add_set_manual("opp")
+        st.rerun()
+st.markdown("</div>", unsafe_allow_html=True)
 
-    with c3:
-        if st.button("↩️ Deshacer último punto", use_container_width=True):
-            live.undo()
-            st.rerun()
 
-        if st.button("🧹 Reiniciar partido", use_container_width=True):
-            live.reset()
-            st.session_state.finish = None
-            st.rerun()
-
-    with c4:
-        st.caption("Añadir manual (por si te has saltado algo)")
-        g1, g2 = st.columns(2, gap="small")
-        with g1:
-            if st.button("➕ Juego Yo", use_container_width=True):
-                live.add_game_manual("me")
-                st.rerun()
-        with g2:
-            if st.button("➕ Juego Rival", use_container_width=True):
-                live.add_game_manual("opp")
-                st.rerun()
-
-        s1, s2 = st.columns(2, gap="small")
-        with s1:
-            if st.button("🏁 Set Yo", use_container_width=True):
-                live.add_set_manual("me")
-                st.rerun()
-        with s2:
-            if st.button("🏁 Set Rival", use_container_width=True):
-                live.add_set_manual("opp")
-                st.rerun()
-
-    st.markdown("</div>", unsafe_allow_html=True)
 
 
