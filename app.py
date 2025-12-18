@@ -16,22 +16,41 @@ import streamlit as st
 
 
 # ==========================================================
-# CONFIG + CSS (MOBILE PRO SPORT UI - MORE VISUAL)
+# CONFIG + CSS (MOBILE PRO SPORT UI - GIF BACKGROUND OPTIONAL)
 # ==========================================================
 st.set_page_config(page_title="TennisStats", page_icon="🎾", layout="centered")
 
-PRO_CSS = """
+def _read_gif_data_uri():
+    """
+    Optional: if you place a GIF at assets/tennis_bg.gif or tennis_bg.gif,
+    it will be embedded safely as a base64 data URI (no external URLs).
+    If not found, returns "" and we fallback to premium gradient background.
+    """
+    candidates = [Path("assets/tennis_bg.gif"), Path("tennis_bg.gif")]
+    for p in candidates:
+        try:
+            if p.exists() and p.is_file():
+                b = p.read_bytes()
+                b64 = base64.b64encode(b).decode("utf-8")
+                return f"data:image/gif;base64,{b64}"
+        except Exception:
+            continue
+    return ""
+
+
+BG_GIF = _read_gif_data_uri()
+
+PRO_CSS = f"""
 <style>
-:root{
+:root{{
   --bg:#f6f8fb;
   --bg2:#eef2f7;
   --card:#ffffff;
-  --card2:#fbfcff;
   --text:#0b1220;
   --muted:#475569;
   --muted2:#64748b;
   --stroke: rgba(2,6,23,0.10);
-  --stroke2: rgba(2,6,23,0.08);
+  --stroke2: rgba(2,6,23,0.07);
   --accent:#16a34a;      /* green */
   --accent2:#2563eb;     /* blue */
   --danger:#dc2626;      /* red */
@@ -40,262 +59,256 @@ PRO_CSS = """
   --shadow: 0 18px 40px rgba(2,6,23,.10);
   --shadow2: 0 10px 22px rgba(2,6,23,.08);
   --focus: 0 0 0 3px rgba(37,99,235,.16);
-}
+}}
 
-html, body, [data-testid="stAppViewContainer"]{
+html, body, [data-testid="stAppViewContainer"]{{
   background:
     radial-gradient(900px 380px at 15% -5%, rgba(22,163,74,.14), transparent 60%),
     radial-gradient(850px 360px at 85% 0%, rgba(37,99,235,.12), transparent 60%),
     linear-gradient(180deg, var(--bg), var(--bg2));
   color: var(--text);
-}
+}}
 
-[data-testid="stAppViewContainer"]::before{
+[data-testid="stAppViewContainer"]::before{{
   content:"";
   position: fixed;
   inset: 0;
   pointer-events:none;
-  opacity: .30;
+  opacity: .28;
   background:
-    linear-gradient(90deg, rgba(2,6,23,.035) 1px, transparent 1px) 0 0 / 140px 140px,
-    linear-gradient(0deg, rgba(2,6,23,.028) 1px, transparent 1px) 0 0 / 140px 140px;
+    linear-gradient(90deg, rgba(2,6,23,.030) 1px, transparent 1px) 0 0 / 140px 140px,
+    linear-gradient(0deg, rgba(2,6,23,.026) 1px, transparent 1px) 0 0 / 140px 140px;
   mask-image: radial-gradient(circle at 50% 0%, black 22%, transparent 62%);
-}
+}}
 
-.block-container{
-  padding-top: 0.75rem;
-  padding-bottom: 1.25rem;
+{"" if not BG_GIF else f"""
+/* Optional Tennis GIF background layer */
+[data-testid="stAppViewContainer"]::after{{
+  content:"";
+  position: fixed;
+  inset: -12%;
+  background-image: url("{BG_GIF}");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.10;              /* subtle so it doesn't hurt readability */
+  filter: blur(0px) saturate(1.05) contrast(1.05);
+  pointer-events: none;
+  z-index: 0;
+}}
+/* keep content above gif */
+.block-container, header, section, footer {{ position: relative; z-index: 1; }}
+"""}
+
+.block-container{{
+  padding-top: 0.70rem;
+  padding-bottom: 1.20rem;
   max-width: 980px;
-}
+}}
 
-div[data-testid="stVerticalBlock"] > div { gap: 0.65rem; }
-header[data-testid="stHeader"]{ height: 0.45rem; background: transparent; }
+div[data-testid="stVerticalBlock"] > div {{ gap: 0.55rem; }}
+header[data-testid="stHeader"]{{ height: 0.40rem; background: transparent; }}
 
-* { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-h1,h2,h3{ letter-spacing: .2px; }
-.stCaption, [data-testid="stCaptionContainer"]{ color: var(--muted2) !important; }
+* {{ -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }}
+h1,h2,h3{{ letter-spacing: .2px; }}
+.stCaption, [data-testid="stCaptionContainer"]{{ color: var(--muted2) !important; }}
 
-.small-note{ color: var(--muted); font-size: .92rem; line-height: 1.25rem; }
-.kpi{ font-size: 1.03rem; font-weight: 950; }
-.mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+.small-note{{ color: var(--muted); font-size: .92rem; line-height: 1.25rem; }}
+.kpi{{ font-size: 1.02rem; font-weight: 950; }}
+.mono{{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }}
 
-hr, [data-testid="stDivider"]{
+hr, [data-testid="stDivider"]{{
   border-color: var(--stroke2) !important;
-  margin: 0.55rem 0;
-}
+  margin: 0.45rem 0;
+}}
 
-/* Inputs */
+/* Inputs - cleaner (less "boxy") */
 div[data-baseweb="select"] > div,
 div[data-baseweb="input"] > div,
-div[data-baseweb="textarea"] > div{
-  background: linear-gradient(180deg, var(--card), var(--card2)) !important;
+div[data-baseweb="textarea"] > div{{
+  background: rgba(255,255,255,0.86) !important;
   border: 1px solid var(--stroke) !important;
   border-radius: 14px !important;
-  box-shadow: var(--shadow2);
-}
+  box-shadow: 0 8px 18px rgba(2,6,23,.06);
+}}
 div[data-baseweb="input"] input,
-div[data-baseweb="textarea"] textarea{ color: var(--text) !important; }
-label, .stTextInput label, .stSelectbox label, .stNumberInput label{
+div[data-baseweb="textarea"] textarea{{ color: var(--text) !important; }}
+label, .stTextInput label, .stSelectbox label, .stNumberInput label{{
   color: var(--muted2) !important;
   font-weight: 850 !important;
-}
+}}
 div[data-baseweb="select"] > div:focus-within,
 div[data-baseweb="input"] > div:focus-within,
-div[data-baseweb="textarea"] > div:focus-within{
+div[data-baseweb="textarea"] > div:focus-within{{
   outline: none !important;
-  box-shadow: var(--shadow2), var(--focus) !important;
+  box-shadow: 0 8px 18px rgba(2,6,23,.08), var(--focus) !important;
   border-color: rgba(37,99,235,.35) !important;
-}
+}}
 
-/* Buttons */
-.stButton>button{
+/* Buttons - sporty */
+.stButton>button{{
   width: 100%;
-  padding: 0.56rem 0.92rem;
+  padding: 0.55rem 0.92rem;
   border-radius: 14px;
   border: 1px solid var(--stroke);
-  background: linear-gradient(180deg, #ffffff, #f4f7fb);
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(245,248,252,0.92));
   color: var(--text);
-  font-weight: 950;
-  box-shadow: var(--shadow2);
+  font-weight: 980;
+  box-shadow: 0 10px 18px rgba(2,6,23,.08);
   transition: transform .06s ease, box-shadow .12s ease, border-color .12s ease;
-}
-.stButton>button:hover{
+}}
+.stButton>button:hover{{
   border-color: rgba(22,163,74,.35);
   box-shadow: 0 14px 28px rgba(2,6,23,.12);
-}
-.stButton>button:active{ transform: translateY(1px) scale(0.99); }
-.stButton>button:focus{ outline: none !important; box-shadow: var(--shadow2), var(--focus) !important; }
+}}
+.stButton>button:active{{ transform: translateY(1px) scale(0.99); }}
+.stButton>button:focus{{ outline: none !important; box-shadow: 0 10px 18px rgba(2,6,23,.08), var(--focus) !important; }}
 
-[data-testid="stDownloadButton"] > button{
+[data-testid="stDownloadButton"] > button{{
   border-radius: 14px !important;
   border: 1px solid rgba(37,99,235,.22) !important;
   background: linear-gradient(180deg, rgba(37,99,235,.14), rgba(255,255,255,0.98)) !important;
   color: var(--text) !important;
   font-weight: 980 !important;
-  box-shadow: var(--shadow2) !important;
-}
-[data-testid="stDownloadButton"] > button:hover{ border-color: rgba(37,99,235,.38) !important; }
+  box-shadow: 0 10px 18px rgba(2,6,23,.08) !important;
+}}
 
 /* Expanders */
-[data-testid="stExpander"]{
+[data-testid="stExpander"]{{
   border: 1px solid var(--stroke) !important;
   border-radius: var(--radius) !important;
-  background: linear-gradient(180deg, var(--card), var(--card2)) !important;
-  box-shadow: var(--shadow);
+  background: rgba(255,255,255,0.86) !important;
+  box-shadow: 0 14px 30px rgba(2,6,23,.09);
   overflow: hidden;
-}
-[data-testid="stExpander"] summary{ font-weight: 980 !important; }
+}}
+[data-testid="stExpander"] summary{{ font-weight: 980 !important; }}
 
 /* Tabs */
-[data-baseweb="tab-list"]{
-  background: rgba(255,255,255,0.75);
+[data-baseweb="tab-list"]{{
+  background: rgba(255,255,255,0.72);
   border: 1px solid var(--stroke);
   border-radius: 16px;
   padding: 6px;
   gap: 6px;
-  box-shadow: var(--shadow2);
-}
-button[role="tab"]{
+  box-shadow: 0 10px 18px rgba(2,6,23,.08);
+}}
+button[role="tab"]{{
   border-radius: 12px !important;
   font-weight: 980 !important;
   color: var(--muted) !important;
-}
-button[role="tab"][aria-selected="true"]{
-  background: linear-gradient(180deg, rgba(22,163,74,.16), rgba(255,255,255,.95)) !important;
+}}
+button[role="tab"][aria-selected="true"]{{
+  background: linear-gradient(180deg, rgba(22,163,74,.16), rgba(255,255,255,.92)) !important;
   color: var(--text) !important;
   border: 1px solid rgba(22,163,74,.25) !important;
-}
+}}
 
 /* Alerts / uploader */
-[data-testid="stAlert"]{
+[data-testid="stAlert"]{{
   border-radius: 16px !important;
   border: 1px solid var(--stroke) !important;
-  background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.82)) !important;
-  box-shadow: var(--shadow2);
-}
-section[data-testid="stFileUploaderDropzone"]{
+  background: rgba(255,255,255,0.80) !important;
+  box-shadow: 0 10px 18px rgba(2,6,23,.08);
+}}
+section[data-testid="stFileUploaderDropzone"]{{
   border-radius: 16px !important;
   border: 1px dashed rgba(2,6,23,0.20) !important;
   background: rgba(255,255,255,0.65) !important;
-  box-shadow: var(--shadow2);
-}
+  box-shadow: 0 10px 18px rgba(2,6,23,.08);
+}}
 
-/* Header card */
-.ts-header{
+/* Header */
+.ts-header{{
   border: 1px solid var(--stroke);
   border-radius: 22px;
   padding: 14px 16px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.90), rgba(255,255,255,0.72));
+  background: linear-gradient(180deg, rgba(255,255,255,0.90), rgba(255,255,255,0.70));
   box-shadow: var(--shadow);
   position: relative;
   overflow: hidden;
-}
-.ts-header::after{
+}}
+.ts-header::after{{
   content:"";
   position:absolute;
   inset:-60% -20% auto auto;
   width: 520px; height: 320px;
   background: radial-gradient(circle at 30% 40%, rgba(37,99,235,.18), transparent 62%);
   transform: rotate(12deg);
-}
-.ts-title{
-  font-size: 1.18rem;
-  font-weight: 1000;
-  margin: 0;
-}
-.ts-sub{
-  margin: 4px 0 0 0;
-  color: var(--muted);
-  font-weight: 700;
-  font-size: .92rem;
-}
-.ts-badges{
-  margin-top: 10px;
-  display:flex;
-  flex-wrap:wrap;
-  gap: 8px;
-}
-.ts-badge{
-  display:inline-flex;
-  align-items:center;
-  gap: 8px;
+}}
+.ts-title{{ font-size: 1.18rem; font-weight: 1000; margin: 0; }}
+.ts-sub{{ margin: 4px 0 0 0; color: var(--muted); font-weight: 750; font-size: .92rem; }}
+.ts-badges{{ margin-top: 10px; display:flex; flex-wrap:wrap; gap: 8px; }}
+.ts-badge{{
+  display:inline-flex; align-items:center; gap: 8px;
   padding: 6px 10px;
   border-radius: 999px;
   border: 1px solid var(--stroke);
   background: rgba(255,255,255,0.72);
-  font-weight: 900;
-  font-size: .88rem;
-  color: var(--text);
-}
-.ts-dot{
-  width: 9px; height: 9px;
-  border-radius: 999px;
-  background: var(--accent);
+  font-weight: 950; font-size: .88rem; color: var(--text);
+}}
+.ts-dot{{ width: 9px; height: 9px; border-radius: 999px; background: var(--accent);
   box-shadow: 0 0 0 3px rgba(22,163,74,.16);
-}
+}}
 
-/* Cards */
-.ts-card{
+/* Minimal cards (less boxy overall) */
+.ts-card{{
   border: 1px solid var(--stroke);
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.82));
-  box-shadow: var(--shadow2);
+  background: rgba(255,255,255,0.82);
+  box-shadow: 0 10px 18px rgba(2,6,23,.08);
   padding: 12px 12px;
-}
+}}
 
 /* Donut rings */
-.ring-wrap{ display:flex; gap: 12px; align-items:center; }
-.ring{
+.ring-wrap{{ display:flex; gap: 12px; align-items:center; }}
+.ring{{
   width: 58px; height: 58px; border-radius: 999px;
   background: conic-gradient(var(--ringc) var(--deg), rgba(2,6,23,.08) 0);
   position: relative; box-shadow: 0 10px 18px rgba(2,6,23,.08);
-}
-.ring::after{
+}}
+.ring::after{{
   content:""; position:absolute; inset: 8px; border-radius: 999px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,255,255,0.86));
+  background: rgba(255,255,255,0.92);
   border: 1px solid rgba(2,6,23,.06);
-}
-.ring-val{
+}}
+.ring-val{{
   position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
   font-weight: 1000; color: var(--text); font-size: .92rem; z-index: 2;
-}
-.ring-txt .t1{ font-weight: 1000; line-height: 1.05rem; }
-.ring-txt .t2{ color: var(--muted); font-weight: 800; font-size: .88rem; margin-top: 2px; }
+}}
+.ring-txt .t1{{ font-weight: 1000; line-height: 1.05rem; }}
+.ring-txt .t2{{ color: var(--muted); font-weight: 800; font-size: .88rem; margin-top: 2px; }}
 
 /* Score pills */
-.pills{ display:flex; gap: 8px; flex-wrap:wrap; margin-top:8px; }
-.pill{
+.pills{{ display:flex; gap: 8px; flex-wrap:wrap; margin-top:8px; }}
+.pill{{
   display:inline-flex; align-items:center; gap:8px;
   padding: 7px 10px; border-radius: 999px;
   border: 1px solid var(--stroke);
   background: rgba(255,255,255,0.70);
   font-weight: 950; font-size:.90rem;
-}
-.pill b{ font-weight:1000; }
+}}
+.pill b{{ font-weight:1000; }}
 
 /* Last points timeline */
-.lp{
-  display:flex; gap:6px; flex-wrap:wrap;
-  margin-top:10px;
-}
-.dot{
+.lp{{ display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }}
+.dot{{
   width: 14px; height: 14px; border-radius: 999px;
   border: 1px solid rgba(2,6,23,.14);
   box-shadow: 0 6px 12px rgba(2,6,23,.08);
-}
-.dot.win{ background: rgba(22,163,74,.95); }
-.dot.lose{ background: rgba(220,38,38,.90); }
-.dot.pressure{ outline: 3px solid rgba(245,158,11,.22); }
+}}
+.dot.win{{ background: rgba(22,163,74,.95); }}
+.dot.lose{{ background: rgba(220,38,38,.90); }}
+.dot.pressure{{ outline: 3px solid rgba(245,158,11,.22); }}
 
 /* Segmented nav */
-div[data-testid="stSegmentedControl"] > div{
+div[data-testid="stSegmentedControl"] > div{{
   border-radius: 16px !important;
   border: 1px solid var(--stroke) !important;
   background: rgba(255,255,255,0.72) !important;
-  box-shadow: var(--shadow2) !important;
+  box-shadow: 0 10px 18px rgba(2,6,23,.08) !important;
   padding: 6px !important;
-}
-div[data-testid="stSegmentedControl"] label{ font-weight: 950 !important; }
+}}
+div[data-testid="stSegmentedControl"] label{{ font-weight: 950 !important; }}
 
 </style>
 """
@@ -620,7 +633,9 @@ class LiveMatch:
         p = self.estimate_point_win_prob()
         p_r = round(p, 3)
         st_ = self.state
-        return _prob_match_bo3(p_r, st_.sets_me, st_.sets_opp, st_.games_me, st_.games_opp, st_.pts_me, st_.pts_opp, st_.in_tiebreak)
+        return _prob_match_bo3(
+            p_r, st_.sets_me, st_.sets_opp, st_.games_me, st_.games_opp, st_.pts_me, st_.pts_opp, st_.in_tiebreak
+        )
 
     def win_prob_series(self):
         probs = []
@@ -675,7 +690,9 @@ class LiveMatch:
         set_idx = before.sets_me + before.sets_opp + 1
         is_pressure = bool(before.in_tiebreak or (before.pts_me >= 3 and before.pts_opp >= 3))
 
-        self.points.append({"result": result, **meta, "surface": self.surface, "before": before.__dict__, "set_idx": set_idx, "pressure": is_pressure})
+        self.points.append(
+            {"result": result, **meta, "surface": self.surface, "before": before.__dict__, "set_idx": set_idx, "pressure": is_pressure}
+        )
 
         if result == "win":
             self.state.pts_me += 1
@@ -832,7 +849,7 @@ class MatchHistory:
 
 
 # ==========================================================
-# Resumen tipo entrenador (basado en stats)
+# Resumen tipo entrenador (original, se mantiene)
 # ==========================================================
 def coach_summary_from_match(m: dict) -> str:
     won = bool(m.get("won_match"))
@@ -911,6 +928,95 @@ def coach_summary_from_match(m: dict) -> str:
 
 
 # ==========================================================
+# Resumen IA (usa OpenAI REST si hay OPENAI_API_KEY; si no, no rompe)
+# ==========================================================
+def ai_coach_summary_from_match(m: dict) -> str:
+    """
+    Generates an AI-style coaching summary. If OPENAI_API_KEY is available,
+    calls OpenAI chat completions API via HTTPS. Otherwise returns a helpful message
+    + fallback (original deterministic summary kept).
+    """
+    api_key = None
+    try:
+        api_key = st.secrets.get("OPENAI_API_KEY", None)
+    except Exception:
+        api_key = None
+    api_key = api_key or os.getenv("OPENAI_API_KEY")
+
+    base_summary = coach_summary_from_match(m)
+
+    if not api_key:
+        return (
+            "⚠️ **Resumen IA no disponible** (falta `OPENAI_API_KEY`).\n\n"
+            "Para activarlo, añade la key en `st.secrets` o variable de entorno.\n\n"
+            "Mientras tanto, aquí tienes el resumen estándar:\n\n"
+            + base_summary
+        )
+
+    # Build compact structured stats for the model
+    fin = (m.get("finishes") or {})
+    payload = {
+        "resultado": "Victoria" if m.get("won_match") else "Derrota",
+        "superficie": m.get("surface", "—"),
+        "marcador_sets": f"{m.get('sets_w',0)}-{m.get('sets_l',0)}",
+        "marcador_juegos": f"{m.get('games_w',0)}-{m.get('games_l',0)}",
+        "puntos": f"{m.get('points_won',0)}/{m.get('points_total',0)} ({m.get('points_pct',0):.0f}%)",
+        "presion": f"{m.get('pressure_won',0)}/{m.get('pressure_total',0)} ({m.get('pressure_pct',0):.0f}%)",
+        "finishes": {
+            "winners": int(fin.get("winner", 0) or 0),
+            "enf": int(fin.get("unforced", 0) or 0),
+            "ef": int(fin.get("forced", 0) or 0),
+            "ace": int(fin.get("ace", 0) or 0),
+            "df": int(fin.get("double_fault", 0) or 0),
+            "error_rival": int(fin.get("opp_error", 0) or 0),
+            "winner_rival": int(fin.get("opp_winner", 0) or 0),
+        },
+    }
+
+    # Call OpenAI REST (no extra deps)
+    try:
+        url = "https://api.openai.com/v1/chat/completions"
+        req_payload = {
+            "model": "gpt-4o-mini",
+            "temperature": 0.7,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "Eres un entrenador de tenis experto y motivador. "
+                        "Da un resumen tipo IA: muy claro, corto, accionable, y con tono profesional. "
+                        "Estructura: 1) Diagnóstico 2) Qué repetir 3) Qué ajustar 4) Plan próximo partido (3 bullets) "
+                        "5) Una frase final motivadora. "
+                        "NO inventes datos: usa solo los stats proporcionados."
+                    ),
+                },
+                {"role": "user", "content": f"Stats del partido:\n{json.dumps(payload, ensure_ascii=False, indent=2)}"},
+            ],
+        }
+        data = json.dumps(req_payload).encode("utf-8")
+        req = urllib.request.Request(
+            url,
+            data=data,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}",
+            },
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            raw = resp.read().decode("utf-8")
+        obj = json.loads(raw)
+        txt = obj["choices"][0]["message"]["content"].strip()
+        return "🤖 **Resumen IA (coach)**\n\n" + txt
+    except Exception as e:
+        return (
+            "⚠️ **No se pudo generar el resumen IA** (error de conexión o API).\n\n"
+            f"Detalle: `{e}`\n\n"
+            "Resumen estándar:\n\n" + base_summary
+        )
+
+
+# ==========================================================
 # SESSION STATE INIT
 # ==========================================================
 def ss_init():
@@ -960,31 +1066,17 @@ def ring(label: str, value: float, sub: str = "", color: str = "var(--accent)"):
     v = max(0.0, min(100.0, v))
     deg = v * 3.6
     html = f"""
-    <div class="ts-card">
-      <div class="ring-wrap">
-        <div class="ring" style="--deg:{deg}deg; --ringc:{color};">
-          <div class="ring-val">{v:.0f}%</div>
-        </div>
-        <div class="ring-txt">
-          <div class="t1">{label}</div>
-          <div class="t2">{sub}</div>
-        </div>
+    <div class="ring-wrap">
+      <div class="ring" style="--deg:{deg}deg; --ringc:{color};">
+        <div class="ring-val">{v:.0f}%</div>
+      </div>
+      <div class="ring-txt">
+        <div class="t1">{label}</div>
+        <div class="t2">{sub}</div>
       </div>
     </div>
     """
-    st.components.v1.html(html, height=92)
-
-
-def mini_card(title: str, body_html: str):
-    st.markdown(
-        f"""
-        <div class="ts-card">
-          <div style="font-weight:1000; margin-bottom:4px;">{title}</div>
-          <div class="small-note">{body_html}</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.markdown(f"<div class='ts-card'>{html}</div>", unsafe_allow_html=True)
 
 
 def score_pills(sets_me, sets_opp, games_me, games_opp, pts_label, surface):
@@ -1008,17 +1100,14 @@ def last_points_timeline(points, n=18):
             cls += " pressure"
         dots.append(f"<span class='dot {cls}' title='{p.get('result','')}'></span>")
     html = f"""
-    <div class="ts-card">
-      <div style="font-weight:1000;">Últimos puntos</div>
-      <div class="small-note">Verde=ganado · Rojo=perdido · Borde=presión</div>
-      <div class="lp">{''.join(dots) if dots else "<span class='small-note'>Aún no hay puntos.</span>"}</div>
-    </div>
+    <div style="font-weight:1000;">Últimos puntos</div>
+    <div class="small-note">Verde=ganado · Rojo=perdido · Borde=presión</div>
+    <div class="lp">{''.join(dots) if dots else "<span class='small-note'>Aún no hay puntos.</span>"}</div>
     """
-    st.markdown(html, unsafe_allow_html=True)
+    st.markdown(f"<div class='ts-card'>{html}</div>", unsafe_allow_html=True)
 
 
 def court_svg(surface: str):
-    # simple decorative court (no input)
     surf_color = {
         "Tierra batida": "#c2410c",
         "Pista rápida": "#1d4ed8",
@@ -1026,52 +1115,56 @@ def court_svg(surface: str):
         "Indoor": "#334155",
     }.get(surface, "#1d4ed8")
     html = f"""
-    <div class="ts-card" style="padding:10px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div style="font-weight:1000;">Vista rápida</div>
-        <div class="small-note">Pista (decorativa)</div>
-      </div>
-      <svg viewBox="0 0 400 210" width="100%" height="150" style="margin-top:8px; border-radius:16px; overflow:hidden;">
-        <defs>
-          <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="{surf_color}" stop-opacity="0.92"/>
-            <stop offset="1" stop-color="{surf_color}" stop-opacity="0.75"/>
-          </linearGradient>
-          <pattern id="grain" width="6" height="6" patternUnits="userSpaceOnUse">
-            <circle cx="1" cy="2" r="0.6" fill="rgba(255,255,255,0.10)"/>
-            <circle cx="4" cy="5" r="0.6" fill="rgba(0,0,0,0.10)"/>
-          </pattern>
-        </defs>
-        <rect x="0" y="0" width="400" height="210" fill="url(#g)"/>
-        <rect x="0" y="0" width="400" height="210" fill="url(#grain)" opacity="0.55"/>
-        <rect x="20" y="15" width="360" height="180" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="3"/>
-        <line x1="200" y1="15" x2="200" y2="195" stroke="rgba(255,255,255,0.75)" stroke-width="3"/>
-        <rect x="60" y="45" width="280" height="120" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="3"/>
-        <line x1="60" y1="105" x2="340" y2="105" stroke="rgba(255,255,255,0.75)" stroke-width="3"/>
-        <circle cx="200" cy="105" r="5" fill="rgba(255,255,255,0.85)"/>
-      </svg>
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-weight:1000;">Pista</div>
+      <div class="small-note">Decorativa</div>
     </div>
+    <svg viewBox="0 0 400 210" width="100%" height="150" style="margin-top:8px; border-radius:16px; overflow:hidden;">
+      <defs>
+        <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="{surf_color}" stop-opacity="0.92"/>
+          <stop offset="1" stop-color="{surf_color}" stop-opacity="0.75"/>
+        </linearGradient>
+        <pattern id="grain" width="6" height="6" patternUnits="userSpaceOnUse">
+          <circle cx="1" cy="2" r="0.6" fill="rgba(255,255,255,0.10)"/>
+          <circle cx="4" cy="5" r="0.6" fill="rgba(0,0,0,0.10)"/>
+        </pattern>
+      </defs>
+      <rect x="0" y="0" width="400" height="210" fill="url(#g)"/>
+      <rect x="0" y="0" width="400" height="210" fill="url(#grain)" opacity="0.55"/>
+      <rect x="20" y="15" width="360" height="180" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="3"/>
+      <line x1="200" y1="15" x2="200" y2="195" stroke="rgba(255,255,255,0.75)" stroke-width="3"/>
+      <rect x="60" y="45" width="280" height="120" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="3"/>
+      <line x1="60" y1="105" x2="340" y2="105" stroke="rgba(255,255,255,0.75)" stroke-width="3"/>
+      <circle cx="200" cy="105" r="5" fill="rgba(255,255,255,0.85)"/>
+    </svg>
     """
-    st.components.v1.html(html, height=230)
+    st.markdown(f"<div class='ts-card'>{html}</div>", unsafe_allow_html=True)
 
 
-def finish_bar_current_match(live_match: LiveMatch):
-    # purely visual, derived from current live points
-    counts = {k: 0 for k, _ in FINISH_ITEMS}
-    for p in live_match.points:
-        f = p.get("finish")
-        if f in counts:
-            counts[f] += 1
-    total = sum(counts.values())
-    if total <= 0:
-        return
-    labels = [lbl for _, lbl in FINISH_ITEMS]
-    values = [counts[k] for k, _ in FINISH_ITEMS]
-    st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
-    st.subheader("Finish (partido actual)", anchor=False)
-    small_note("Distribución de finishes registrados en este partido.")
-    st.bar_chart({labels[i]: values[i] for i in range(len(labels))}, height=240)
-    st.markdown("</div>", unsafe_allow_html=True)
+def icon_svg(kind: str):
+    # simple inline SVG icons (decorative only)
+    icons = {
+        "score": """
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M4 7h16M4 12h16M4 17h16" stroke="rgba(2,6,23,.72)" stroke-width="2" stroke-linecap="round"/>
+        </svg>""",
+        "bolt": """
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M13 2L3 14h8l-1 8 11-14h-8l0-6z" fill="rgba(37,99,235,.85)"/>
+        </svg>""",
+        "shield": """
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2l8 4v6c0 6-4 9-8 10-4-1-8-4-8-10V6l8-4z" fill="rgba(245,158,11,.85)"/>
+        </svg>""",
+        "trophy": """
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M7 4h10v3a5 5 0 0 1-10 0V4z" fill="rgba(22,163,74,.85)"/>
+          <path d="M9 18h6v2H9z" fill="rgba(2,6,23,.55)"/>
+          <path d="M10 13h4v5h-4z" fill="rgba(2,6,23,.35)"/>
+        </svg>""",
+    }
+    return icons.get(kind, "")
 
 
 # ==========================================================
@@ -1082,7 +1175,7 @@ def auth_block():
         """
         <div class="ts-header">
           <div class="ts-title">🎾 TennisStats</div>
-          <div class="ts-sub">Acceso privado por usuario. Interfaz optimizada para móvil.</div>
+          <div class="ts-sub">Acceso privado por usuario. Optimizado para móvil.</div>
           <div class="ts-badges">
             <div class="ts-badge"><span class="ts-dot"></span> Live tracking</div>
             <div class="ts-badge"><span class="ts-dot" style="background: var(--accent2); box-shadow:0 0 0 3px rgba(37,99,235,.14);"></span> Markov Win Prob</div>
@@ -1092,7 +1185,6 @@ def auth_block():
         """,
         unsafe_allow_html=True,
     )
-    st.caption("")
 
     users = load_users()
     tab_login, tab_register = st.tabs(["🔑 Entrar", "🆕 Crear usuario"])
@@ -1195,7 +1287,7 @@ with st.sidebar:
         st.session_state.finish = None
         st.rerun()
 
-# TOP DASHBOARD (visual)
+# TOP DASHBOARD (visual, compact)
 total_pts, won_pts, pct_pts = live.points_stats()
 p_point = live.estimate_point_win_prob()
 p_match = live.match_win_prob() * 100.0
@@ -1204,7 +1296,7 @@ st.markdown(
     f"""
     <div class="ts-header">
       <div class="ts-title">🎾 Dashboard</div>
-      <div class="ts-sub">Intuitivo y visual para uso en móvil: anillos, timeline de puntos y pistas.</div>
+      <div class="ts-sub">Visual, rápido y pensado para móvil.</div>
       <div class="ts-badges">
         <div class="ts-badge"><span class="ts-dot"></span> {user_display}</div>
         <div class="ts-badge"><span class="ts-dot" style="background: var(--accent2); box-shadow:0 0 0 3px rgba(37,99,235,.14);"></span> Win Prob {p_match:.1f}%</div>
@@ -1231,25 +1323,35 @@ if st.session_state.page == "LIVE":
     st_ = live.state
     pts_label = f"TB {st_.pts_me}-{st_.pts_opp}" if st_.in_tiebreak else game_point_label(st_.pts_me, st_.pts_opp)
 
-    # Contexto arriba: superficie + marcador visual
-    st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
+    # Surface + quick score (less boxes)
     a, b = st.columns([1.05, 0.95], gap="small")
     with a:
         live.surface = st.selectbox("Superficie", SURFACES, index=SURFACES.index(live.surface))
-        small_note("Tip: usa el panel lateral para cambiar de página rápido.")
+        small_note("Tip: usa el panel lateral para navegar rápido.")
     with b:
-        mini_card("Estado del partido", f"<span class='mono'>Sets {st_.sets_me}-{st_.sets_opp} · Juegos {st_.games_me}-{st_.games_opp} · Puntos {pts_label}</span><br/>Win Prob <b>{p_match:.1f}%</b>")
-    score_pills(st_.sets_me, st_.sets_opp, st_.games_me, st_.games_opp, pts_label, live.surface)
-    st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown(
+            f"""
+            <div class="ts-card" style="display:flex; gap:10px; align-items:center;">
+              <div>{icon_svg("score")}</div>
+              <div>
+                <div style="font-weight:1000;">Marcador</div>
+                <div class="small-note"><span class="mono">Sets {st_.sets_me}-{st_.sets_opp} · Juegos {st_.games_me}-{st_.games_opp} · Puntos {pts_label}</span></div>
+              </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-    # Pista decorativa + timeline de puntos
+    score_pills(st_.sets_me, st_.sets_opp, st_.games_me, st_.games_opp, pts_label, live.surface)
+
+    # Pista + timeline
     cL, cR = st.columns([1, 1], gap="small")
     with cL:
         court_svg(live.surface)
     with cR:
         last_points_timeline(live.points, n=18)
 
-    # Botones principales (mismo comportamiento)
+    # Registrar punto (funciones intactas)
     st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
     st.subheader("Registrar punto", anchor=False)
     c1, c2 = st.columns(2, gap="small")
@@ -1285,7 +1387,7 @@ if st.session_state.page == "LIVE":
             st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Finish selector (igual lógica)
+    # Finish selector (misma lógica)
     st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
     st.subheader("Finish (opcional)", anchor=False)
     small_note("Selecciona 1 (se aplica al siguiente punto). Puedes deseleccionar tocando de nuevo.")
@@ -1307,10 +1409,7 @@ if st.session_state.page == "LIVE":
         small_note(f"Seleccionado: **{st.session_state.finish or '—'}**")
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Visual extra: finishes del partido actual (solo si hay datos)
-    finish_bar_current_match(live)
-
-    # Acciones rápidas + finalizar (misma funcionalidad)
+    # Acciones rápidas + finalizar
     st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
     st.subheader("Acciones", anchor=False)
     a1, a2, a3 = st.columns(3, gap="small")
@@ -1364,7 +1463,7 @@ if st.session_state.page == "LIVE":
                     st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Historial + export/import (mismo)
+    # Historial + export/import (funciones intactas)
     st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
     st.subheader("Historial y exportación", anchor=False)
     small_note("Tu historial privado (solo tu usuario). Puedes editar/borrar y exportar/importar en JSON.")
@@ -1372,18 +1471,6 @@ if st.session_state.page == "LIVE":
     if not history.matches:
         st.info("Aún no hay partidos guardados.")
     else:
-        last10 = history.filtered_matches(n=10, surface=None)
-        w10 = sum(1 for m in last10 if m.get("won_match"))
-        t10 = len(last10)
-        pct10 = (w10 / t10 * 100.0) if t10 else 0.0
-
-        x1, x2 = st.columns(2, gap="small")
-        with x1:
-            ring("Últimos 10", pct10, f"{w10}/{t10} victorias", "var(--accent)")
-        with x2:
-            best_all = history.best_streak(surface=None)
-            mini_card("🔥 Mejor racha", f"<b>{best_all}</b> victorias seguidas")
-
         matches = list(reversed(history.matches))
         for idx, m in enumerate(matches):
             real_i = len(history.matches) - 1 - idx
@@ -1401,9 +1488,9 @@ if st.session_state.page == "LIVE":
                 fin_line = f"Winners {fin.get('winner',0)} · ENF {fin.get('unforced',0)} · EF {fin.get('forced',0)} · Ace {fin.get('ace',0)} · DF {fin.get('double_fault',0)}"
                 small_note(fin_line)
 
-                if st.button("🧠 Resumen tipo entrenador", key=f"coach_{m.get('id',real_i)}", use_container_width=True):
+                if st.button("🧠 Resumen tipo entrenador (IA)", key=f"coach_{m.get('id',real_i)}", use_container_width=True):
                     st.session_state._coach_open = True
-                    st.session_state._coach_text = coach_summary_from_match(m)
+                    st.session_state._coach_text = ai_coach_summary_from_match(m)
                     st.rerun()
 
                 e1, e2 = st.columns(2, gap="small")
@@ -1420,7 +1507,7 @@ if st.session_state.page == "LIVE":
                         st.rerun()
 
         if st.session_state.get("_coach_open", False):
-            with st.expander("🧠 Resumen del entrenador", expanded=True):
+            with st.expander("🧠 Resumen IA", expanded=True):
                 st.markdown(st.session_state.get("_coach_text", ""))
                 if st.button("Cerrar resumen", use_container_width=True):
                     st.session_state._coach_open = False
@@ -1506,7 +1593,7 @@ elif st.session_state.page == "ANALYSIS":
     title_h("Analysis")
 
     st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
-    st.markdown("**Win Probability (modelo real)**")
+    st.markdown(f"{icon_svg('bolt')} <b>Win Probability (modelo real)</b>", unsafe_allow_html=True)
     small_note(f"p(punto)≈{p_point:.2f} · Win Prob≈{p_match:.1f}%")
     small_note("Modelo: Markov (punto→juego→set→BO3). p(punto) se estima con tus puntos del partido.")
     st.markdown("</div>", unsafe_allow_html=True)
@@ -1521,16 +1608,11 @@ elif st.session_state.page == "ANALYSIS":
     st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
-    st.subheader("Puntos de presión (live)", anchor=False)
+    st.markdown(f"{icon_svg('shield')} <b>Puntos de presión (live)</b>", unsafe_allow_html=True)
     pressure_total = sum(1 for p in live.points if p.get("pressure"))
     pressure_won = sum(1 for p in live.points if p.get("pressure") and p.get("result") == "win")
     pressure_pct = (pressure_won / pressure_total * 100.0) if pressure_total else 0.0
-
-    a, b = st.columns(2, gap="small")
-    with a:
-        ring("Presión", pressure_pct, f"{pressure_won}/{pressure_total} ganados", "var(--warn)")
-    with b:
-        last_points_timeline(live.points, n=12)
+    ring("Presión", pressure_pct, f"{pressure_won}/{pressure_total} ganados", "var(--warn)")
     st.write(f"**{pressure_won}/{pressure_total}** ganados ({pressure_pct:.0f}%) en deuce/tiebreak.")
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -1551,7 +1633,6 @@ elif st.session_state.page == "STATS":
     agg = history.aggregate(n=n, surface=surf_filter)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Visual principal: 3 anillos
     c1, c2, c3 = st.columns(3, gap="small")
     with c1:
         ring("Partidos", agg["matches_pct"], f"{agg['matches_win']} / {agg['matches_total']}", "var(--accent)")
@@ -1560,9 +1641,8 @@ elif st.session_state.page == "STATS":
     with c3:
         ring("Juegos", agg["games_pct"], f"{agg['games_w']} / {agg['games_w'] + agg['games_l']}", "var(--warn)")
 
-    # Resumen + finishes
     st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
-    st.subheader("Resumen", anchor=False)
+    st.markdown(f"{icon_svg('trophy')} <b>Resumen</b>", unsafe_allow_html=True)
     st.write(
         f"**Puntos:** {agg['points_won']}/{agg['points_total']} ({agg['points_pct']:.0f}%) · "
         f"**Presión:** {agg['pressure_won']}/{agg['pressure_total']} ({agg['pressure_pct']:.0f}%)"
@@ -1574,7 +1654,6 @@ elif st.session_state.page == "STATS":
     )
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Rachas (visual)
     st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
     st.subheader("Rachas", anchor=False)
     results = history.last_n_results(10, surface=(None if surf_filter == "Todas" else surf_filter))
@@ -1587,45 +1666,22 @@ elif st.session_state.page == "STATS":
     st.write(f"**🔥 Mejor racha:** {best} victorias seguidas")
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Superficies + gráfico
     st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
     st.subheader("Superficies", anchor=False)
     surf = agg["surfaces"]
+    chart_data = {}
     for srf in SURFACES:
         w = surf.get(srf, {}).get("w", 0)
         t_ = surf.get(srf, {}).get("t", 0)
         pct = (w / t_ * 100.0) if t_ else 0.0
         st.write(f"**{srf}:** {pct:.0f}%  ({w} de {t_})")
-
-    chart_data = {}
-    for srf in SURFACES:
-        w = surf.get(srf, {}).get("w", 0)
-        t_ = surf.get(srf, {}).get("t", 0)
-        chart_data[srf] = (w / t_ * 100.0) if t_ else 0.0
+        chart_data[srf] = pct
 
     if any(v > 0 for v in chart_data.values()):
         st.bar_chart(chart_data, height=260)
     else:
         small_note("Aún no hay datos suficientes para mostrar el gráfico por superficies.")
     st.markdown("</div>", unsafe_allow_html=True)
-
-    # Extra visual: evolución de resultados por fecha (si hay)
-    if history.matches:
-        try:
-            st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
-            st.subheader("Evolución (historial)", anchor=False)
-            # serie: 1 si victoria, 0 si derrota; con etiqueta por fecha (simple)
-            series = []
-            for m in history.matches[-30:]:
-                series.append(100.0 if m.get("won_match") else 0.0)
-            if len(series) >= 2:
-                st.line_chart(series, height=220)
-                small_note("Serie: 100=Victoria, 0=Derrota (últimos 30).")
-            else:
-                small_note("Añade más partidos para ver evolución.")
-            st.markdown("</div>", unsafe_allow_html=True)
-        except Exception:
-            pass
 
 
 # ==========================================================
