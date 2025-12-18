@@ -5,6 +5,7 @@ import base64
 import secrets
 import hashlib
 import urllib.request
+import urllib.parse
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from dataclasses import dataclass
@@ -45,8 +46,6 @@ def _read_gif_data_uri():
 
 BG_GIF = _read_gif_data_uri()
 
-# ✅ FIX: el bloque CSS con el GIF tenía llaves { } sin escapar dentro de un f-string,
-# y Python lo interpretaba como expresión (NameError en `content:"";`).
 BG_LAYER = ""
 if BG_GIF:
     BG_LAYER = f"""
@@ -62,7 +61,7 @@ if BG_GIF:
   opacity: 0.14; /* ajusta 0.10-0.20 */
   filter: saturate(1.10) contrast(1.08);
   pointer-events: none;
-  z-index: 0; /* <-- CLAVE: antes estaba en -1 */
+  z-index: 0;
 }}
 """
 
@@ -78,10 +77,10 @@ PRO_CSS = f"""
   --muted2: rgba(255,255,255,0.62);
   --stroke: rgba(255,255,255,0.14);
   --stroke2: rgba(255,255,255,0.10);
-  --accent:#22c55e;       /* green */
-  --accent2:#60a5fa;      /* blue */
-  --danger:#fb7185;       /* pink/red */
-  --warn:#fbbf24;         /* amber */
+  --accent:#22c55e;
+  --accent2:#60a5fa;
+  --danger:#fb7185;
+  --warn:#fbbf24;
   --radius: 18px;
   --radius2: 22px;
   --shadow: 0 22px 60px rgba(0,0,0,.45);
@@ -321,19 +320,35 @@ div[data-testid="stSegmentedControl"] label[data-selected="true"]{{
 }}
 
 /* ==========================================================
-   NEW: Smooth slide animation between sections (no new logic)
+   Smooth slide animation between sections (no dizziness)
    ========================================================== */
 @keyframes tsSlideIn {{
-  from {{ opacity: 0; transform: translateX(18px); }}
+  from {{ opacity: 0; transform: translateX(14px); }}
   to   {{ opacity: 1; transform: translateX(0); }}
 }}
 .ts-page-anim {{
-  animation: tsSlideIn .22s ease-out;
+  animation: tsSlideIn .18s ease-out;
   will-change: transform, opacity;
 }}
 @media (prefers-reduced-motion: reduce) {{
   .ts-page-anim {{ animation: none !important; }}
 }}
+
+/* Weather mini-cards */
+.wx-row{{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }}
+.wx-card{{
+  flex: 1 1 135px;
+  min-width: 135px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 16px;
+  padding: 10px 10px;
+  background: rgba(0,0,0,0.16);
+  box-shadow: 0 14px 28px rgba(0,0,0,.30);
+}}
+.wx-top{{ display:flex; align-items:center; justify-content:space-between; gap:8px; }}
+.wx-time{{ font-weight: 1000; }}
+.wx-temp{{ font-size:1.25rem; font-weight: 1000; }}
+.wx-meta{{ margin-top:6px; color: rgba(255,255,255,0.72); font-weight:850; font-size:.86rem; line-height:1.15rem; }}
 </style>
 """
 st.markdown(PRO_CSS, unsafe_allow_html=True)
@@ -486,17 +501,41 @@ def fetch_tennis_news(max_items: int = 15):
 
 
 # ==========================================================
-# WEATHER (Open-Meteo) — NEW: widget en LIVE (no afecta a tenis)
+# WEATHER (Open-Meteo) — LIVE: próximas 5 horas (visual + refresh)
 # ==========================================================
-@st.cache_data(ttl=1800, show_spinner=False)
+@st.cache_data(ttl=86400, show_spinner=False)
+def geocode_city_openmeteo(city: str):
+    q = (city or "").strip()
+    if not q:
+        return None
+    url = "https://geocoding-api.open-meteo.com/v1/search?" + urllib.parse.urlencode(
+        {"name": q, "count": 1, "language": "es", "format": "json"}
+    )
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Streamlit TennisStats)"})
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        raw = resp.read().decode("utf-8")
+    obj = json.loads(raw)
+    results = obj.get("results") or []
+    if not results:
+        return None
+    r = results[0]
+    return {
+        "name": r.get("name"),
+        "admin1": r.get("admin1"),
+        "country": r.get("country"),
+        "lat": r.get("latitude"),
+        "lon": r.get("longitude"),
+        "timezone": r.get("timezone"),
+    }
+
+
+@st.cache_data(ttl=900, show_spinner=False)
 def fetch_weather_openmeteo(lat: float, lon: float):
-    # Daily + hourly + current (free, no key)
     url = (
         "https://api.open-meteo.com/v1/forecast"
         f"?latitude={lat}&longitude={lon}"
         "&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,wind_speed_10m"
         "&hourly=temperature_2m,precipitation_probability,precipitation,wind_speed_10m"
-        "&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max"
         "&timezone=auto"
     )
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Streamlit TennisStats)"})
@@ -505,82 +544,143 @@ def fetch_weather_openmeteo(lat: float, lon: float):
     return json.loads(raw)
 
 
-def render_weather_widget():
-    # Donostia / San Sebastián (por defecto; solo UI)
-    lat, lon = 43.3183, -1.9812
+def _safe_float(x, nd=None):
+    try:
+        v = float(x)
+        return round(v, nd) if nd is not None else v
+    except Exception:
+        return None
+
+
+def render_weather_widget_5h():
+    # Estado UI del widget (NO afecta a tenis)
+    if "wx_city" not in st.session_state:
+        st.session_state.wx_city = "Donostia"
+    if "wx_loc" not in st.session_state:
+        st.session_state.wx_loc = None  # cache local: {lat, lon, label}
+
+    st.markdown("<div class='ts-card pad'>", unsafe_allow_html=True)
+    st.markdown("🌦️ <b>Tiempo</b> <span class='small-note'>(próximas 5 horas · visual)</span>", unsafe_allow_html=True)
+
+    cA, cB = st.columns([1.2, 0.8], gap="small")
+    with cA:
+        city = st.text_input("Ubicación", value=st.session_state.wx_city, placeholder="Ej: Donostia", label_visibility="collapsed")
+        st.session_state.wx_city = city
+    with cB:
+        if st.button("🔄 Actualizar", use_container_width=True):
+            fetch_weather_openmeteo.clear()
+            geocode_city_openmeteo.clear()
+            st.rerun()
+
+    # Geocoding (si falla, fallback Donostia)
+    loc = None
+    try:
+        loc = geocode_city_openmeteo(st.session_state.wx_city)
+    except Exception:
+        loc = None
+
+    if not loc or loc.get("lat") is None or loc.get("lon") is None:
+        loc = {"name": "Donostia", "admin1": "Gipuzkoa", "country": "España", "lat": 43.3183, "lon": -1.9812}
+
+    label = f"{loc.get('name','')} · {loc.get('admin1','')}".strip(" ·")
+    lat, lon = float(loc["lat"]), float(loc["lon"])
+
     try:
         w = fetch_weather_openmeteo(lat, lon)
     except Exception as e:
-        st.markdown("<div class='ts-card pad'>", unsafe_allow_html=True)
-        st.markdown("🌦️ <b>Tiempo (previsión)</b>", unsafe_allow_html=True)
         st.error(f"No se pudo cargar la previsión ahora mismo: {e}")
         st.markdown("</div>", unsafe_allow_html=True)
         return
 
     cur = w.get("current", {}) or {}
     hourly = w.get("hourly", {}) or {}
-    daily = w.get("daily", {}) or {}
 
-    # current
-    t = cur.get("temperature_2m", None)
-    feel = cur.get("apparent_temperature", None)
-    hum = cur.get("relative_humidity_2m", None)
-    wind = cur.get("wind_speed_10m", None)
-    precip = cur.get("precipitation", None)
+    t = _safe_float(cur.get("temperature_2m"), 0)
+    feel = _safe_float(cur.get("apparent_temperature"), 0)
+    hum = _safe_float(cur.get("relative_humidity_2m"), 0)
+    wind = _safe_float(cur.get("wind_speed_10m"), 0)
+    precip = _safe_float(cur.get("precipitation"), 1)
 
-    st.markdown("<div class='ts-card pad'>", unsafe_allow_html=True)
-    st.markdown("🌦️ <b>Tiempo · Donostia</b> <span class='small-note'>(previsión completa)</span>", unsafe_allow_html=True)
+    st.markdown(
+        f"""
+        <div class="ts-row" style="margin-top:6px;">
+          <div style="font-weight:1000;">📍 {label}</div>
+          <div class="small-note">Fuente: Open-Meteo</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    c1, c2, c3 = st.columns([1.05, 0.95, 1.0], gap="small")
-    with c1:
-        st.markdown(f"<div class='small-note'>Ahora</div><div style='font-size:1.4rem; font-weight:1000;'>{'' if t is None else f'{t:.0f}°C'}</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='small-note'>Sensación: {'' if feel is None else f'{feel:.0f}°C'}</div>", unsafe_allow_html=True)
-    with c2:
-        st.markdown(f"<div class='small-note'>Humedad</div><div style='font-size:1.15rem; font-weight:950;'>{'' if hum is None else f'{hum:.0f}%'}</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='small-note'>Viento: {'' if wind is None else f'{wind:.0f} km/h'}</div>", unsafe_allow_html=True)
-    with c3:
-        st.markdown(f"<div class='small-note'>Precipitación</div><div style='font-size:1.15rem; font-weight:950;'>{'' if precip is None else f'{precip:.1f} mm'}</div>", unsafe_allow_html=True)
-        st.markdown("<div class='small-note'>Fuente: Open-Meteo</div>", unsafe_allow_html=True)
+    # Ahora (resumen compacto)
+    st.markdown(
+        f"""
+        <div class="wx-row" style="margin-top:8px;">
+          <div class="wx-card" style="flex:1 1 220px;">
+            <div class="wx-top">
+              <div class="wx-time">Ahora</div>
+              <div class="wx-temp">{"" if t is None else f"{t:.0f}°C"}</div>
+            </div>
+            <div class="wx-meta">
+              🌡️ Sensación: {"" if feel is None else f"{feel:.0f}°C"}<br/>
+              💧 Humedad: {"" if hum is None else f"{hum:.0f}%"}<br/>
+              🌬️ Viento: {"" if wind is None else f"{wind:.0f} km/h"}<br/>
+              🌧️ Precip.: {"" if precip is None else f"{precip:.1f} mm"}
+            </div>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    # Next 24h line chart (temps)
+    # Próximas 5 horas (sin gráfico)
     times = hourly.get("time", []) or []
     temps = hourly.get("temperature_2m", []) or []
     pop = hourly.get("precipitation_probability", []) or []
-    if times and temps:
-        n = min(24, len(temps))
-        st.divider()
-        st.markdown("<div style='font-weight:1000;'>Próximas 24h (temperatura)</div>", unsafe_allow_html=True)
-        st.line_chart(temps[:n], height=165)
+    pr = hourly.get("precipitation", []) or []
+    w10 = hourly.get("wind_speed_10m", []) or []
 
-        # quick row: precip probability max in next 24h
+    # índice de inicio: intenta alinear con "current.time"; si no, usa 0
+    start_i = 0
+    cur_time = cur.get("time")
+    if cur_time and times:
         try:
-            pop_max = max([p for p in pop[:n] if p is not None], default=None)
+            start_i = times.index(cur_time)
         except Exception:
-            pop_max = None
-        if pop_max is not None:
-            st.markdown(f"<div class='small-note'>Máx. prob. lluvia (24h): <b>{pop_max:.0f}%</b></div>", unsafe_allow_html=True)
+            # fallback: deja start_i=0
+            start_i = 0
 
-    # 7-day table
-    d_time = daily.get("time", []) or []
-    tmax = daily.get("temperature_2m_max", []) or []
-    tmin = daily.get("temperature_2m_min", []) or []
-    popm = daily.get("precipitation_probability_max", []) or []
-    wmax = daily.get("wind_speed_10m_max", []) or []
-    if d_time:
-        st.divider()
-        st.markdown("<div style='font-weight:1000;'>7 días</div>", unsafe_allow_html=True)
-        rows = []
-        for i in range(min(7, len(d_time))):
-            rows.append(
-                {
-                    "Día": str(d_time[i]),
-                    "Máx (°C)": None if i >= len(tmax) else tmax[i],
-                    "Mín (°C)": None if i >= len(tmin) else tmin[i],
-                    "Lluvia máx (%)": None if i >= len(popm) else popm[i],
-                    "Viento máx (km/h)": None if i >= len(wmax) else wmax[i],
-                }
+    n = 5
+    end_i = min(len(times), start_i + n)
+    if times and end_i - start_i > 0:
+        cards = []
+        for i in range(start_i, end_i):
+            tt = str(times[i])[-5:] if isinstance(times[i], str) and len(times[i]) >= 5 else str(times[i])
+            ti = _safe_float(temps[i], 0) if i < len(temps) else None
+            pi = _safe_float(pop[i], 0) if i < len(pop) else None
+            pri = _safe_float(pr[i], 1) if i < len(pr) else None
+            wi = _safe_float(w10[i], 0) if i < len(w10) else None
+
+            cards.append(
+                f"""
+                <div class="wx-card">
+                  <div class="wx-top">
+                    <div class="wx-time">{tt}</div>
+                    <div class="wx-temp">{"" if ti is None else f"{ti:.0f}°C"}</div>
+                  </div>
+                  <div class="wx-meta">
+                    🌧️ {"" if pi is None else f"{pi:.0f}%"} · {"" if pri is None else f"{pri:.1f} mm"}<br/>
+                    🌬️ {"" if wi is None else f"{wi:.0f} km/h"}
+                  </div>
+                </div>
+                """
             )
-        st.dataframe(rows, use_container_width=True, hide_index=True)
+
+        st.divider()
+        st.markdown("<div style='font-weight:1000;'>Próximas 5 horas</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='wx-row'>{''.join(cards)}</div>", unsafe_allow_html=True)
+    else:
+        st.divider()
+        st.info("No hay datos horarios suficientes ahora mismo para mostrar las próximas 5 horas.")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -1149,11 +1249,11 @@ def ss_init():
     if "authed" not in st.session_state:
         st.session_state.authed = False
 
-    # NEW: animation key (visual only)
+    # Animación: solo cuando cambias de página (no en cada rerun)
     if "_prev_page" not in st.session_state:
         st.session_state._prev_page = st.session_state.page
-    if "_page_anim_key" not in st.session_state:
-        st.session_state._page_anim_key = "init"
+    if "_do_anim" not in st.session_state:
+        st.session_state._do_anim = True
 
 
 ss_init()
@@ -1407,9 +1507,9 @@ with st.sidebar:
         st.session_state.finish = None
         st.rerun()
 
-# NEW: update animation key only if page changed (visual only)
+# Animación: solo si cambió la página
 if st.session_state.page != st.session_state._prev_page:
-    st.session_state._page_anim_key = secrets.token_hex(4)
+    st.session_state._do_anim = True
     st.session_state._prev_page = st.session_state.page
 
 # TOP DASHBOARD (visual, compact)
@@ -1439,11 +1539,11 @@ with top1:
 with top2:
     ring("Prob. victoria", p_match, "Modelo Markov", "var(--accent2)")
 
-# NEW: animated wrapper for page content (visual only)
-st.markdown(
-    f"<div class='ts-page-anim' id='ts_anim_{st.session_state._page_anim_key}'>",
-    unsafe_allow_html=True,
-)
+# Wrapper animado (solo cuando cambias de sección)
+anim_cls = "ts-page-anim" if st.session_state._do_anim else ""
+st.markdown(f"<div class='{anim_cls}'>", unsafe_allow_html=True)
+st.session_state._do_anim = False  # <- evita animar en reruns dentro de la misma página
+
 
 # ==========================================================
 # PAGE: LIVE
@@ -1451,8 +1551,8 @@ st.markdown(
 if st.session_state.page == "LIVE":
     title_h("LIVE MATCH")
 
-    # NEW: Weather widget (previsión completa) — solo UI
-    render_weather_widget()
+    # Weather widget: próximas 5 horas (visual + refresh)
+    render_weather_widget_5h()
 
     st_ = live.state
     pts_label = f"TB {st_.pts_me}-{st_.pts_opp}" if st_.in_tiebreak else game_point_label(st_.pts_me, st_.pts_opp)
@@ -1474,14 +1574,12 @@ if st.session_state.page == "LIVE":
         score_pills(st_.sets_me, st_.sets_opp, st_.games_me, st_.games_opp, pts_label, live.surface)
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # Visual grid: pista + timeline + mini trend
     c1, c2 = st.columns([1, 1], gap="small")
     with c1:
         court_svg(live.surface)
     with c2:
         last_points_timeline(live.points, n=18)
 
-    # Mini tendencia WinProb (sin cambiar modelo; solo visual)
     probs = live.win_prob_series()
     st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
     st.markdown(f"{icon_svg('bolt')} <b>Tendencia Win Probability</b>", unsafe_allow_html=True)
@@ -1491,7 +1589,6 @@ if st.session_state.page == "LIVE":
         st.line_chart(probs[-40:], height=170)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Registrar punto (funciones intactas)
     st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
     st.subheader("Registrar punto", anchor=False)
     r1, r2 = st.columns(2, gap="small")
@@ -1507,7 +1604,6 @@ if st.session_state.page == "LIVE":
             st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Acciones manuales (funciones intactas)
     st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
     st.subheader("Acciones manuales", anchor=False)
     m1, m2 = st.columns(2, gap="small")
@@ -1527,7 +1623,6 @@ if st.session_state.page == "LIVE":
             st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Finish selector (misma lógica)
     st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
     st.subheader("Finish (opcional)", anchor=False)
     small_note("Selecciona 1 (se aplica al siguiente punto). Puedes deseleccionar tocando de nuevo.")
@@ -1549,7 +1644,6 @@ if st.session_state.page == "LIVE":
         small_note(f"Seleccionado: **{st.session_state.finish or '—'}**")
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Acciones + finalizar (funciones intactas)
     st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
     st.subheader("Acciones", anchor=False)
     a1, a2, a3 = st.columns(3, gap="small")
@@ -1603,7 +1697,6 @@ if st.session_state.page == "LIVE":
                     st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Historial + export/import (funciones intactas)
     st.markdown("<div class='ts-card pad'>", unsafe_allow_html=True)
     st.subheader("Historial y exportación", anchor=False)
     small_note("Tu historial privado (solo tu usuario). Puedes editar/borrar y exportar/importar en JSON.")
@@ -1904,5 +1997,5 @@ else:
                 st.components.v1.html(html, height=680, scrolling=False)
     st.markdown("</div>", unsafe_allow_html=True)
 
-# Close animated wrapper (visual only)
+# Close wrapper
 st.markdown("</div>", unsafe_allow_html=True)
