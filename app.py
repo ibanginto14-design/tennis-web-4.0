@@ -45,6 +45,27 @@ def _read_gif_data_uri():
 
 BG_GIF = _read_gif_data_uri()
 
+# ✅ FIX: el bloque CSS con el GIF tenía llaves { } sin escapar dentro de un f-string,
+# y Python lo interpretaba como expresión (NameError en `content:"";`).
+BG_LAYER = ""
+if BG_GIF:
+    BG_LAYER = f"""
+/* Tennis GIF background layer */
+[data-testid="stAppViewContainer"]::after{{
+  content:"";
+  position: fixed;
+  inset: -12%;
+  background-image: url("{BG_GIF}");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.14; /* ajusta 0.10-0.20 */
+  filter: saturate(1.10) contrast(1.08);
+  pointer-events: none;
+  z-index: 0; /* <-- CLAVE: antes estaba en -1 */
+}}
+"""
+
 PRO_CSS = f"""
 <style>
 :root{{
@@ -91,22 +112,7 @@ html, body, [data-testid="stAppViewContainer"]{{
   z-index: 0;
 }}
 
-{"" if not BG_GIF else f"""
-/* Tennis GIF background layer */
-[data-testid="stAppViewContainer"]::after{
-  content:"";
-  position: fixed;
-  inset: -12%;
-  background-image: url("{BG_GIF}");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  opacity: 0.14; /* ajusta 0.10-0.20 */
-  filter: saturate(1.10) contrast(1.08);
-  pointer-events: none;
-  z-index: 0; /* <-- CLAVE: antes estaba en -1 */
-}
-"""}
+{BG_LAYER}
 
 /* Keep content above */
 .block-container, header, section, footer {{ position: relative; z-index: 1; }}
@@ -1763,4 +1769,3 @@ else:
                 """
                 st.components.v1.html(html, height=680, scrolling=False)
     st.markdown("</div>", unsafe_allow_html=True)
-
