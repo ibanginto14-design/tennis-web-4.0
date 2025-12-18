@@ -45,8 +45,6 @@ def _read_gif_data_uri():
 
 BG_GIF = _read_gif_data_uri()
 
-# ✅ FIX: el bloque CSS con el GIF tenía llaves { } sin escapar dentro de un f-string,
-# y Python lo interpretaba como expresión (NameError en `content:"";`).
 BG_LAYER = ""
 if BG_GIF:
     BG_LAYER = f"""
@@ -59,10 +57,10 @@ if BG_GIF:
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  opacity: 0.14; /* ajusta 0.10-0.20 */
+  opacity: 0.14;
   filter: saturate(1.10) contrast(1.08);
   pointer-events: none;
-  z-index: 0; /* <-- CLAVE: antes estaba en -1 */
+  z-index: 0;
 }}
 """
 
@@ -78,10 +76,10 @@ PRO_CSS = f"""
   --muted2: rgba(255,255,255,0.62);
   --stroke: rgba(255,255,255,0.14);
   --stroke2: rgba(255,255,255,0.10);
-  --accent:#22c55e;       /* green */
-  --accent2:#60a5fa;      /* blue */
-  --danger:#fb7185;       /* pink/red */
-  --warn:#fbbf24;         /* amber */
+  --accent:#22c55e;
+  --accent2:#60a5fa;
+  --danger:#fb7185;
+  --warn:#fbbf24;
   --radius: 18px;
   --radius2: 22px;
   --shadow: 0 22px 60px rgba(0,0,0,.45);
@@ -196,13 +194,14 @@ div[data-baseweb="textarea"] > div:focus-within{{
   color: var(--text);
   font-weight: 980;
   box-shadow: 0 14px 24px rgba(0,0,0,.30);
-  transition: transform .06s ease, box-shadow .12s ease, border-color .12s ease;
+  transition: transform .06s ease, box-shadow .12s ease, border-color .12s ease, filter .12s ease;
 }}
 .stButton>button:hover{{
   border-color: rgba(34,197,94,.35);
   box-shadow: 0 18px 34px rgba(0,0,0,.36);
 }}
-.stButton>button:active{{ transform: translateY(1px) scale(0.99); }}
+/* (3) Feedback táctil visual: scale 0.98 */
+.stButton>button:active{{ transform: translateY(1px) scale(0.98); filter: brightness(1.05); }}
 .stButton>button:focus{{ outline: none !important; box-shadow: 0 14px 24px rgba(0,0,0,.30), var(--focus) !important; }}
 
 /* Download button */
@@ -267,27 +266,24 @@ div[data-testid="stSegmentedControl"] > div{{
   padding: 6px !important;
 }}
 div[data-testid="stSegmentedControl"] label{{ font-weight: 950 !important; color: var(--muted) !important; }}
-div[data-testid="stSegmentedControl"] label[data-selected="true"]{{
-  color: var(--text) !important;
-}}
+div[data-testid="stSegmentedControl"] label[data-selected="true"]{{ color: var(--text) !important; }}
 
-/* Donut rings */
+/* (3) Ring animation: SVG donut draws in smoothly */
 .ring-wrap{{ display:flex; gap: 12px; align-items:center; }}
-.ring{{
-  width: 60px; height: 60px; border-radius: 999px;
-  background: conic-gradient(var(--ringc) var(--deg), rgba(255,255,255,.12) 0);
-  position: relative; box-shadow: 0 14px 24px rgba(0,0,0,.30);
+.ringSvg{{ width: 64px; height: 64px; filter: drop-shadow(0 14px 24px rgba(0,0,0,.30)); }}
+.ringTrack{{ stroke: rgba(255,255,255,.14); stroke-width: 10; }}
+.ringProg{{ stroke: var(--ringc); stroke-width: 10; stroke-linecap: round;
+  transform: rotate(-90deg); transform-origin: 50% 50%;
+  stroke-dasharray: var(--circ);
+  stroke-dashoffset: calc(var(--circ) * (1 - var(--p)));
+  animation: ringFill .55s cubic-bezier(.2,.9,.2,1) both;
 }}
-.ring::after{{
-  content:""; position:absolute; inset: 8px; border-radius: 999px;
-  background: rgba(0,0,0,0.25);
-  border: 1px solid rgba(255,255,255,0.10);
-  backdrop-filter: blur(10px);
+@keyframes ringFill {{
+  from {{ stroke-dashoffset: var(--circ); }}
+  to   {{ stroke-dashoffset: calc(var(--circ) * (1 - var(--p))); }}
 }}
-.ring-val{{
-  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-  font-weight: 1000; color: var(--text); font-size: .92rem; z-index: 2;
-}}
+.ringCenter{{ fill: rgba(0,0,0,0.25); stroke: rgba(255,255,255,0.10); stroke-width: 1; }}
+.ring-val{{ font-weight: 1000; fill: rgba(255,255,255,0.95); font-size: 12px; }}
 .ring-txt .t1{{ font-weight: 1000; line-height: 1.05rem; }}
 .ring-txt .t2{{ color: var(--muted); font-weight: 800; font-size: .88rem; margin-top: 2px; }}
 
@@ -318,6 +314,71 @@ div[data-testid="stSegmentedControl"] label[data-selected="true"]{{
   background: rgba(0,0,0,0.10) !important;
   border-radius: 16px !important;
   border: 1px solid rgba(255,255,255,0.10) !important;
+}}
+
+/* (3) WinProb pulse when big change */
+.pulseWinProb{{ animation: wpPulse .55s ease-in-out both; }}
+@keyframes wpPulse {{
+  0% {{ transform: scale(1); }}
+  35% {{ transform: scale(1.035); }}
+  100% {{ transform: scale(1); }}
+}}
+
+/* (4) UI modes (layout + CSS only) */
+.ui-pista .ts-title{{ font-size: 1.22rem; }}
+.ui-pista .ts-sub{{ font-size: .98rem; }}
+.ui-pista .stButton>button{{ padding: 0.90rem 1.05rem; border-radius: 18px; font-size: 1.02rem; }}
+.ui-pista .small-note{{ font-size: .98rem; }}
+.ui-pista .ts-card{{ padding: 12px 12px; }}
+
+.ui-casa .ts-card{{ padding: 12px 12px; }}
+.ui-casa .small-note{{ font-size: .90rem; }}
+.ui-casa .ts-title{{ font-size: 1.08rem; }}
+
+/* (8) Strong cover / hero (used in auth) */
+.hero{{
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 26px;
+  overflow: hidden;
+  box-shadow: 0 22px 60px rgba(0,0,0,.52);
+  position: relative;
+}}
+.heroBg{{
+  position:absolute; inset:-12%;
+  background-image: url("{BG_GIF}");
+  background-size: cover;
+  background-position: center;
+  filter: blur(10px) saturate(1.08) contrast(1.06);
+  opacity: .70;
+}}
+.heroOverlay{{
+  position:absolute; inset:0;
+  background: radial-gradient(900px 400px at 18% 12%, rgba(34,197,94,.24), transparent 60%),
+              radial-gradient(900px 420px at 86% 18%, rgba(96,165,250,.22), transparent 62%),
+              linear-gradient(180deg, rgba(0,0,0,.22), rgba(0,0,0,.55));
+}}
+.heroInner{{
+  position:relative; padding: 18px 16px 16px 16px;
+}}
+.heroClaim{{
+  font-size: 1.55rem; font-weight: 1100; letter-spacing: .4px;
+  margin: 0; line-height: 1.1;
+}}
+.heroSub{{
+  margin-top: 8px; color: rgba(255,255,255,.84); font-weight: 850;
+}}
+.heroName{{
+  margin-top: 10px;
+  display:inline-flex; align-items:center; gap:8px;
+  padding: 8px 12px; border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.16);
+  background: rgba(0,0,0,.20);
+  font-weight: 1000;
+}}
+.heroShine{{
+  position:absolute; inset:0;
+  background: radial-gradient(circle at 22% 10%, rgba(255,255,255,.16), transparent 35%);
+  pointer-events:none;
 }}
 </style>
 """
@@ -1033,6 +1094,12 @@ def ss_init():
         st.session_state.auth_key = None
     if "authed" not in st.session_state:
         st.session_state.authed = False
+    # (4) UI Mode: Pista (default) vs Casa
+    if "ui_mode" not in st.session_state:
+        st.session_state.ui_mode = "Pista"
+    # (3) WinProb pulse tracking (UI only)
+    if "_last_p_match" not in st.session_state:
+        st.session_state._last_p_match = None
 
 
 ss_init()
@@ -1063,12 +1130,17 @@ def title_h(txt: str):
 def ring(label: str, value: float, sub: str = "", color: str = "var(--accent)"):
     v = 0.0 if value is None else float(value)
     v = max(0.0, min(100.0, v))
-    deg = v * 3.6
+    p = v / 100.0
+    # SVG donut to allow smooth draw animation on mount
+    # r=24 => circ ≈ 150.8
     html = f"""
     <div class="ring-wrap">
-      <div class="ring" style="--deg:{deg}deg; --ringc:{color};">
-        <div class="ring-val">{v:.0f}%</div>
-      </div>
+      <svg class="ringSvg" viewBox="0 0 64 64" style="--ringc:{color}; --p:{p}; --circ:150.796447372;">
+        <circle class="ringCenter" cx="32" cy="32" r="22"></circle>
+        <circle class="ringTrack" cx="32" cy="32" r="24" fill="none"></circle>
+        <circle class="ringProg"  cx="32" cy="32" r="24" fill="none"></circle>
+        <text class="ring-val" x="32" y="36" text-anchor="middle">{v:.0f}%</text>
+      </svg>
       <div class="ring-txt">
         <div class="t1">{label}</div>
         <div class="t2">{sub}</div>
@@ -1170,26 +1242,31 @@ def icon_svg(kind: str):
 # AUTH UI
 # ==========================================================
 def auth_block():
+    # (8) Strong cover / identity first
+    name_hint = st.session_state.get("_login_user_hint", "") or "Jugador"
     st.markdown(
         f"""
-        <div class="ts-card pad">
-          <div class="ts-title">🎾 TennisStats</div>
-          <div class="ts-sub">Acceso privado por usuario · UI móvil · Win Prob Markov · Fondo animado</div>
-          <div class="ts-chiprow">
-            <div class="ts-chip"><span class="ts-dot"></span> Live tracking</div>
-            <div class="ts-chip"><span class="ts-dot" style="background: var(--accent2); box-shadow:0 0 0 3px rgba(96,165,250,.18);"></span> Markov Win Prob</div>
-            <div class="ts-chip"><span class="ts-dot" style="background: var(--warn); box-shadow:0 0 0 3px rgba(251,191,36,.18);"></span> Export / Import</div>
+        <div class="hero">
+          <div class="heroBg"></div>
+          <div class="heroOverlay"></div>
+          <div class="heroShine"></div>
+          <div class="heroInner">
+            <div class="heroClaim">Track. Compete. Improve.</div>
+            <div class="heroSub">Tu partido, punto a punto. Tu progreso, partido a partido.</div>
+            <div class="heroName">🎾 {name_hint}</div>
           </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
+    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
 
     users = load_users()
     tab_login, tab_register = st.tabs(["🔑 Entrar", "🆕 Crear usuario"])
 
     with tab_login:
         u = st.text_input("Usuario", value="", placeholder="Ej: ruben")
+        st.session_state._login_user_hint = (u.strip() or "Jugador")
         pin = st.text_input("PIN", value="", type="password", placeholder="4-12 dígitos")
         if st.button("Entrar", use_container_width=True):
             key = safe_user_key(u)
@@ -1261,6 +1338,22 @@ history: MatchHistory = st.session_state.history
 user_key = st.session_state.auth_key
 user_display = st.session_state.auth_user
 
+# (4) UI Mode selector (layout/CSS only)
+with st.sidebar:
+    st.markdown("### 🎾 TennisStats")
+    st.caption("Panel (en móvil puedes colapsarlo)")
+    st.markdown(f"**👤 Usuario:** `{user_display}`")
+    st.divider()
+    mode_label = "🏟️ Pista" if st.session_state.ui_mode == "Pista" else "🏠 Casa"
+    mode = st.segmented_control("Modo", options=["🏟️ Pista", "🏠 Casa"], default=mode_label, label_visibility="visible")
+    if mode:
+        st.session_state.ui_mode = "Pista" if "Pista" in mode else "Casa"
+    st.divider()
+
+# Apply UI mode class wrapper
+ui_cls = "ui-pista" if st.session_state.ui_mode == "Pista" else "ui-casa"
+st.markdown(f"<div class='{ui_cls}'>", unsafe_allow_html=True)
+
 # NAV (mismo contenido funcional)
 page_map = {"🎾": "LIVE", "📈": "ANALYSIS", "📊": "STATS", "📰": "NEWS", "🧠": "PSICO"}
 labels = list(page_map.keys())
@@ -1270,9 +1363,6 @@ if nav and page_map.get(nav) != st.session_state.page:
     st.session_state.page = page_map[nav]
 
 with st.sidebar:
-    st.markdown("### 🎾 TennisStats")
-    st.caption("Panel (en móvil puedes colapsarlo)")
-    st.markdown(f"**👤 Usuario:** `{user_display}`")
     full_map = {"🎾 LIVE": "LIVE", "📈 Analysis": "ANALYSIS", "📊 Stats": "STATS", "📰 Noticias": "NEWS", "🧠 Psico": "PSICO"}
     cur_full = next((k for k, v in full_map.items() if v == st.session_state.page), "🎾 LIVE")
     choice = st.radio("Página", list(full_map.keys()), index=list(full_map.keys()).index(cur_full))
@@ -1291,6 +1381,14 @@ total_pts, won_pts, pct_pts = live.points_stats()
 p_point = live.estimate_point_win_prob()
 p_match = live.match_win_prob() * 100.0
 
+# (3) WinProb "latido" when big change (UI-only state)
+last_pm = st.session_state.get("_last_p_match", None)
+pulse = False
+if last_pm is not None and abs(p_match - float(last_pm)) >= 6.0:
+    pulse = True
+st.session_state._last_p_match = float(p_match)
+
+wp_cls = "pulseWinProb" if pulse else ""
 st.markdown(
     f"""
     <div class="ts-card pad">
@@ -1298,7 +1396,10 @@ st.markdown(
       <div class="ts-sub">UI épica (móvil) · Marcador live · Tendencias · Historial privado</div>
       <div class="ts-chiprow">
         <div class="ts-chip"><span class="ts-dot"></span> {user_display}</div>
-        <div class="ts-chip"><span class="ts-dot" style="background: var(--accent2); box-shadow:0 0 0 3px rgba(96,165,250,.18);"></span> Win Prob <b>{p_match:.1f}%</b></div>
+        <div class="ts-chip {wp_cls}">
+          <span class="ts-dot" style="background: var(--accent2); box-shadow:0 0 0 3px rgba(96,165,250,.18);"></span>
+          Win Prob <b>{p_match:.1f}%</b>
+        </div>
         <div class="ts-chip"><span class="ts-dot" style="background: var(--warn); box-shadow:0 0 0 3px rgba(251,191,36,.18);"></span> p(punto) <b>{p_point:.2f}</b></div>
         <div class="ts-chip"><span class="ts-dot" style="background: var(--danger); box-shadow:0 0 0 3px rgba(251,113,133,.18);"></span> Puntos <b>{won_pts}/{total_pts}</b></div>
       </div>
@@ -1340,22 +1441,38 @@ if st.session_state.page == "LIVE":
         score_pills(st_.sets_me, st_.sets_opp, st_.games_me, st_.games_opp, pts_label, live.surface)
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # Visual grid: pista + timeline + mini trend
-    c1, c2 = st.columns([1, 1], gap="small")
-    with c1:
-        court_svg(live.surface)
-    with c2:
-        last_points_timeline(live.points, n=18)
+    # (4) Modo Pista: menos info visible por defecto; Modo Casa: todo visible + gráficos
+    if st.session_state.ui_mode == "Casa":
+        c1, c2 = st.columns([1, 1], gap="small")
+        with c1:
+            court_svg(live.surface)
+        with c2:
+            last_points_timeline(live.points, n=18)
 
-    # Mini tendencia WinProb (sin cambiar modelo; solo visual)
-    probs = live.win_prob_series()
-    st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
-    st.markdown(f"{icon_svg('bolt')} <b>Tendencia Win Probability</b>", unsafe_allow_html=True)
-    if len(probs) < 2:
-        small_note("Aún no hay suficientes puntos para la tendencia (mínimo 2).")
+        probs = live.win_prob_series()
+        st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
+        st.markdown(f"{icon_svg('bolt')} <b>Tendencia Win Probability</b>", unsafe_allow_html=True)
+        if len(probs) < 2:
+            small_note("Aún no hay suficientes puntos para la tendencia (mínimo 2).")
+        else:
+            st.line_chart(probs[-40:], height=170)
+        st.markdown("</div>", unsafe_allow_html=True)
     else:
-        st.line_chart(probs[-40:], height=170)
-    st.markdown("</div>", unsafe_allow_html=True)
+        with st.expander("Detalles (pista / tendencia / últimos puntos)", expanded=False):
+            c1, c2 = st.columns([1, 1], gap="small")
+            with c1:
+                court_svg(live.surface)
+            with c2:
+                last_points_timeline(live.points, n=18)
+
+            probs = live.win_prob_series()
+            st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
+            st.markdown(f"{icon_svg('bolt')} <b>Tendencia Win Probability</b>", unsafe_allow_html=True)
+            if len(probs) < 2:
+                small_note("Aún no hay suficientes puntos para la tendencia (mínimo 2).")
+            else:
+                st.line_chart(probs[-40:], height=170)
+            st.markdown("</div>", unsafe_allow_html=True)
 
     # Registrar punto (funciones intactas)
     st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
@@ -1615,6 +1732,7 @@ elif st.session_state.page == "ANALYSIS":
 
     st.markdown("<div class='ts-card pad'>", unsafe_allow_html=True)
     st.markdown(f"{icon_svg('shield')} <b>Puntos de presión (live)</b>", unsafe_allow_html=True)
+    small_note("En modo Pista, mantén esto como referencia rápida; en modo Casa lo puedes analizar con más calma.")
     pressure_total = sum(1 for p in live.points if p.get("pressure"))
     pressure_won = sum(1 for p in live.points if p.get("pressure") and p.get("result") == "win")
     pressure_pct = (pressure_won / pressure_total * 100.0) if pressure_total else 0.0
@@ -1688,6 +1806,20 @@ elif st.session_state.page == "STATS":
     else:
         small_note("Aún no hay datos suficientes para mostrar el gráfico por superficies.")
     st.markdown("</div>", unsafe_allow_html=True)
+
+    # (4) Modo Casa: cards más densas + comparativa visible (sin nuevas funciones)
+    if st.session_state.ui_mode == "Casa" and history.matches:
+        series = []
+        for m in history.matches[-40:]:
+            series.append(float(m.get("points_pct", 0) or 0))
+        st.markdown("<div class='ts-card pad'>", unsafe_allow_html=True)
+        st.subheader("Comparativa rápida", anchor=False)
+        small_note("Tendencia del % de puntos ganados en tus últimos partidos (hasta 40).")
+        if len(series) >= 2:
+            st.line_chart(series, height=200)
+        else:
+            small_note("Necesitas al menos 2 partidos guardados para ver tendencia.")
+        st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ==========================================================
@@ -1769,3 +1901,6 @@ else:
                 """
                 st.components.v1.html(html, height=680, scrolling=False)
     st.markdown("</div>", unsafe_allow_html=True)
+
+# close ui wrapper
+st.markdown("</div>", unsafe_allow_html=True)
