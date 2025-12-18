@@ -64,6 +64,8 @@ if BG_GIF:
 }}
 """
 
+# =======================  VISUAL UPGRADE  =======================
+# Solo CSS/UI: no cambia lógica ni funciones.
 PRO_CSS = f"""
 <style>
 :root{{
@@ -85,6 +87,7 @@ PRO_CSS = f"""
   --shadow: 0 22px 60px rgba(0,0,0,.45);
   --shadow2: 0 14px 34px rgba(0,0,0,.38);
   --focus: 0 0 0 3px rgba(96,165,250,.22);
+  --glow: 0 0 0 1px rgba(255,255,255,.08), 0 18px 44px rgba(0,0,0,.42);
 }}
 
 *{{ -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }}
@@ -115,6 +118,15 @@ html, body, [data-testid="stAppViewContainer"]{{
 /* Keep content above */
 .block-container, header, section, footer {{ position: relative; z-index: 1; }}
 
+/* Smooth entrance for main content (page reruns feel “premium”) */
+@keyframes floatIn {{
+  from {{ opacity: 0; transform: translateY(10px); }}
+  to   {{ opacity: 1; transform: translateY(0px); }}
+}}
+.block-container > div {{
+  animation: floatIn .35s ease-out both;
+}}
+
 .block-container{{
   padding-top: 0.75rem;
   padding-bottom: 1.25rem;
@@ -128,13 +140,18 @@ div[data-testid="stVerticalBlock"] > div {{ gap: 0.55rem; }}
 .small-note{{ color: var(--muted); font-size: .92rem; line-height: 1.25rem; }}
 .mono{{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }}
 
+/* Nicer scrollbars */
+*::-webkit-scrollbar{{ height: 10px; width: 10px; }}
+*::-webkit-scrollbar-thumb{{ background: rgba(255,255,255,.12); border-radius: 999px; border: 2px solid rgba(0,0,0,.25); }}
+*::-webkit-scrollbar-track{{ background: rgba(0,0,0,.14); }}
+
 /* Dividers */
 hr, [data-testid="stDivider"]{{
   border-color: var(--stroke2) !important;
   margin: 0.35rem 0;
 }}
 
-/* Cards */
+/* Cards — upgraded with subtle “neon edge” */
 .ts-card{{
   border: 1px solid var(--stroke);
   border-radius: var(--radius2);
@@ -142,7 +159,24 @@ hr, [data-testid="stDivider"]{{
   box-shadow: var(--shadow2);
   padding: 12px 12px;
   backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
 }}
+.ts-card::before{{
+  content:"";
+  position:absolute;
+  inset:-2px;
+  background: conic-gradient(from 180deg,
+    rgba(34,197,94,.18),
+    rgba(96,165,250,.16),
+    rgba(251,191,36,.12),
+    rgba(251,113,133,.12),
+    rgba(34,197,94,.18));
+  filter: blur(10px);
+  opacity:.45;
+  pointer-events:none;
+}}
+.ts-card > *{{ position: relative; z-index: 1; }}
 .ts-card.tight{{ padding: 10px 10px; }}
 .ts-card.pad{{ padding: 14px 14px; }}
 .ts-row{{ display:flex; align-items:center; justify-content:space-between; gap:12px; }}
@@ -156,6 +190,7 @@ hr, [data-testid="stDivider"]{{
   border: 1px solid var(--stroke2);
   background: rgba(0,0,0,0.18);
   font-weight: 950; font-size: .88rem; color: var(--text);
+  box-shadow: var(--glow);
 }}
 .ts-dot{{ width: 9px; height: 9px; border-radius: 999px; background: var(--accent);
   box-shadow: 0 0 0 3px rgba(34,197,94,.18);
@@ -184,7 +219,7 @@ div[data-baseweb="textarea"] > div:focus-within{{
   border-color: rgba(96,165,250,.35) !important;
 }}
 
-/* Buttons */
+/* Buttons — premium feel */
 .stButton>button{{
   width: 100%;
   padding: 0.62rem 0.92rem;
@@ -200,7 +235,6 @@ div[data-baseweb="textarea"] > div:focus-within{{
   border-color: rgba(34,197,94,.35);
   box-shadow: 0 18px 34px rgba(0,0,0,.36);
 }}
-/* (3) Feedback táctil visual: scale 0.98 */
 .stButton>button:active{{ transform: translateY(1px) scale(0.98); filter: brightness(1.05); }}
 .stButton>button:focus{{ outline: none !important; box-shadow: 0 14px 24px rgba(0,0,0,.30), var(--focus) !important; }}
 
@@ -257,18 +291,24 @@ section[data-testid="stFileUploaderDropzone"]{{
   box-shadow: 0 12px 22px rgba(0,0,0,.25);
 }}
 
-/* Segmented control nav */
+/* Segmented control nav — sticky top (feels app-like) */
+div[data-testid="stSegmentedControl"]{{
+  position: sticky !important;
+  top: .55rem !important;
+  z-index: 60 !important;
+  backdrop-filter: blur(10px);
+}}
 div[data-testid="stSegmentedControl"] > div{{
   border-radius: 18px !important;
   border: 1px solid var(--stroke) !important;
-  background: rgba(0,0,0,0.20) !important;
+  background: rgba(0,0,0,0.22) !important;
   box-shadow: 0 12px 22px rgba(0,0,0,.28) !important;
   padding: 6px !important;
 }}
 div[data-testid="stSegmentedControl"] label{{ font-weight: 950 !important; color: var(--muted) !important; }}
 div[data-testid="stSegmentedControl"] label[data-selected="true"]{{ color: var(--text) !important; }}
 
-/* (3) Ring animation: SVG donut draws in smoothly */
+/* (3) Ring animation */
 .ring-wrap{{ display:flex; gap: 12px; align-items:center; }}
 .ringSvg{{ width: 64px; height: 64px; filter: drop-shadow(0 14px 24px rgba(0,0,0,.30)); }}
 .ringTrack{{ stroke: rgba(255,255,255,.14); stroke-width: 10; }}
@@ -295,6 +335,7 @@ div[data-testid="stSegmentedControl"] label[data-selected="true"]{{ color: var(-
   border: 1px solid var(--stroke2);
   background: rgba(0,0,0,0.18);
   font-weight: 950; font-size:.90rem;
+  box-shadow: var(--glow);
 }}
 .pill b{{ font-weight:1000; }}
 
@@ -309,14 +350,14 @@ div[data-testid="stSegmentedControl"] label[data-selected="true"]{{ color: var(-
 .dot.lose{{ background: rgba(251,113,133,.92); }}
 .dot.pressure{{ outline: 3px solid rgba(251,191,36,.26); }}
 
-/* Make charts slightly nicer */
+/* Charts */
 [data-testid="stVegaLiteChart"] {{
   background: rgba(0,0,0,0.10) !important;
   border-radius: 16px !important;
   border: 1px solid rgba(255,255,255,0.10) !important;
 }}
 
-/* (3) WinProb pulse when big change */
+/* WinProb pulse */
 .pulseWinProb{{ animation: wpPulse .55s ease-in-out both; }}
 @keyframes wpPulse {{
   0% {{ transform: scale(1); }}
@@ -324,7 +365,7 @@ div[data-testid="stSegmentedControl"] label[data-selected="true"]{{ color: var(-
   100% {{ transform: scale(1); }}
 }}
 
-/* (4) UI modes (layout + CSS only) */
+/* UI modes */
 .ui-pista .ts-title{{ font-size: 1.22rem; }}
 .ui-pista .ts-sub{{ font-size: .98rem; }}
 .ui-pista .stButton>button{{ padding: 0.90rem 1.05rem; border-radius: 18px; font-size: 1.02rem; }}
@@ -335,7 +376,7 @@ div[data-testid="stSegmentedControl"] label[data-selected="true"]{{ color: var(-
 .ui-casa .small-note{{ font-size: .90rem; }}
 .ui-casa .ts-title{{ font-size: 1.08rem; }}
 
-/* (8) Strong cover / hero (used in auth) */
+/* Hero */
 .hero{{
   border: 1px solid rgba(255,255,255,0.14);
   border-radius: 26px;
@@ -357,16 +398,9 @@ div[data-testid="stSegmentedControl"] label[data-selected="true"]{{ color: var(-
               radial-gradient(900px 420px at 86% 18%, rgba(96,165,250,.22), transparent 62%),
               linear-gradient(180deg, rgba(0,0,0,.22), rgba(0,0,0,.55));
 }}
-.heroInner{{
-  position:relative; padding: 18px 16px 16px 16px;
-}}
-.heroClaim{{
-  font-size: 1.55rem; font-weight: 1100; letter-spacing: .4px;
-  margin: 0; line-height: 1.1;
-}}
-.heroSub{{
-  margin-top: 8px; color: rgba(255,255,255,.84); font-weight: 850;
-}}
+.heroInner{{ position:relative; padding: 18px 16px 16px 16px; }}
+.heroClaim{{ font-size: 1.55rem; font-weight: 1100; letter-spacing: .4px; margin: 0; line-height: 1.1; }}
+.heroSub{{ margin-top: 8px; color: rgba(255,255,255,.84); font-weight: 850; }}
 .heroName{{
   margin-top: 10px;
   display:inline-flex; align-items:center; gap:8px;
@@ -380,6 +414,14 @@ div[data-testid="stSegmentedControl"] label[data-selected="true"]{{ color: var(-
   background: radial-gradient(circle at 22% 10%, rgba(255,255,255,.16), transparent 35%);
   pointer-events:none;
 }}
+
+/* Tiny “status dot” animation (alive app feel) */
+@keyframes dotPulse {{
+  0% {{ transform: scale(1); opacity: .85; }}
+  50% {{ transform: scale(1.12); opacity: 1; }}
+  100% {{ transform: scale(1); opacity: .85; }}
+}}
+.ts-dot{{ animation: dotPulse 1.8s ease-in-out infinite; }}
 </style>
 """
 st.markdown(PRO_CSS, unsafe_allow_html=True)
@@ -1094,10 +1136,8 @@ def ss_init():
         st.session_state.auth_key = None
     if "authed" not in st.session_state:
         st.session_state.authed = False
-    # (4) UI Mode: Pista (default) vs Casa
     if "ui_mode" not in st.session_state:
         st.session_state.ui_mode = "Pista"
-    # (3) WinProb pulse tracking (UI only)
     if "_last_p_match" not in st.session_state:
         st.session_state._last_p_match = None
 
@@ -1131,8 +1171,6 @@ def ring(label: str, value: float, sub: str = "", color: str = "var(--accent)"):
     v = 0.0 if value is None else float(value)
     v = max(0.0, min(100.0, v))
     p = v / 100.0
-    # SVG donut to allow smooth draw animation on mount
-    # r=24 => circ ≈ 150.8
     html = f"""
     <div class="ring-wrap">
       <svg class="ringSvg" viewBox="0 0 64 64" style="--ringc:{color}; --p:{p}; --circ:150.796447372;">
@@ -1242,7 +1280,6 @@ def icon_svg(kind: str):
 # AUTH UI
 # ==========================================================
 def auth_block():
-    # (8) Strong cover / identity first
     name_hint = st.session_state.get("_login_user_hint", "") or "Jugador"
     st.markdown(
         f"""
@@ -1338,7 +1375,6 @@ history: MatchHistory = st.session_state.history
 user_key = st.session_state.auth_key
 user_display = st.session_state.auth_user
 
-# (4) UI Mode selector (layout/CSS only)
 with st.sidebar:
     st.markdown("### 🎾 TennisStats")
     st.caption("Panel (en móvil puedes colapsarlo)")
@@ -1350,14 +1386,14 @@ with st.sidebar:
         st.session_state.ui_mode = "Pista" if "Pista" in mode else "Casa"
     st.divider()
 
-# Apply UI mode class wrapper
 ui_cls = "ui-pista" if st.session_state.ui_mode == "Pista" else "ui-casa"
 st.markdown(f"<div class='{ui_cls}'>", unsafe_allow_html=True)
 
-# NAV (mismo contenido funcional)
 page_map = {"🎾": "LIVE", "📈": "ANALYSIS", "📊": "STATS", "📰": "NEWS", "🧠": "PSICO"}
 labels = list(page_map.keys())
 current_label = next((k for k, v in page_map.items() if v == st.session_state.page), "🎾")
+
+# Sticky segmented control already handled by CSS (epic app feel)
 nav = st.segmented_control(" ", options=labels, default=current_label, label_visibility="collapsed")
 if nav and page_map.get(nav) != st.session_state.page:
     st.session_state.page = page_map[nav]
@@ -1376,12 +1412,11 @@ with st.sidebar:
         st.session_state.finish = None
         st.rerun()
 
-# TOP DASHBOARD (visual, compact)
+# TOP DASHBOARD
 total_pts, won_pts, pct_pts = live.points_stats()
 p_point = live.estimate_point_win_prob()
 p_match = live.match_win_prob() * 100.0
 
-# (3) WinProb "latido" when big change (UI-only state)
 last_pm = st.session_state.get("_last_p_match", None)
 pulse = False
 if last_pm is not None and abs(p_match - float(last_pm)) >= 6.0:
@@ -1393,7 +1428,7 @@ st.markdown(
     f"""
     <div class="ts-card pad">
       <div class="ts-title">🏟️ TennisStats — Dashboard</div>
-      <div class="ts-sub">UI épica (móvil) · Marcador live · Tendencias · Historial privado</div>
+      <div class="ts-sub">UI épica · Marcador live · Tendencias · Historial privado</div>
       <div class="ts-chiprow">
         <div class="ts-chip"><span class="ts-dot"></span> {user_display}</div>
         <div class="ts-chip {wp_cls}">
@@ -1441,7 +1476,6 @@ if st.session_state.page == "LIVE":
         score_pills(st_.sets_me, st_.sets_opp, st_.games_me, st_.games_opp, pts_label, live.surface)
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # (4) Modo Pista: menos info visible por defecto; Modo Casa: todo visible + gráficos
     if st.session_state.ui_mode == "Casa":
         c1, c2 = st.columns([1, 1], gap="small")
         with c1:
@@ -1474,7 +1508,6 @@ if st.session_state.page == "LIVE":
                 st.line_chart(probs[-40:], height=170)
             st.markdown("</div>", unsafe_allow_html=True)
 
-    # Registrar punto (funciones intactas)
     st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
     st.subheader("Registrar punto", anchor=False)
     r1, r2 = st.columns(2, gap="small")
@@ -1490,7 +1523,6 @@ if st.session_state.page == "LIVE":
             st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Acciones manuales (funciones intactas)
     st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
     st.subheader("Acciones manuales", anchor=False)
     m1, m2 = st.columns(2, gap="small")
@@ -1510,7 +1542,6 @@ if st.session_state.page == "LIVE":
             st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Finish selector (misma lógica)
     st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
     st.subheader("Finish (opcional)", anchor=False)
     small_note("Selecciona 1 (se aplica al siguiente punto). Puedes deseleccionar tocando de nuevo.")
@@ -1532,7 +1563,6 @@ if st.session_state.page == "LIVE":
         small_note(f"Seleccionado: **{st.session_state.finish or '—'}**")
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Acciones + finalizar (funciones intactas)
     st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
     st.subheader("Acciones", anchor=False)
     a1, a2, a3 = st.columns(3, gap="small")
@@ -1586,7 +1616,6 @@ if st.session_state.page == "LIVE":
                     st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Historial + export/import (funciones intactas)
     st.markdown("<div class='ts-card pad'>", unsafe_allow_html=True)
     st.subheader("Historial y exportación", anchor=False)
     small_note("Tu historial privado (solo tu usuario). Puedes editar/borrar y exportar/importar en JSON.")
@@ -1807,7 +1836,6 @@ elif st.session_state.page == "STATS":
         small_note("Aún no hay datos suficientes para mostrar el gráfico por superficies.")
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # (4) Modo Casa: cards más densas + comparativa visible (sin nuevas funciones)
     if st.session_state.ui_mode == "Casa" and history.matches:
         series = []
         for m in history.matches[-40:]:
@@ -1902,5 +1930,4 @@ else:
                 st.components.v1.html(html, height=680, scrolling=False)
     st.markdown("</div>", unsafe_allow_html=True)
 
-# close ui wrapper
 st.markdown("</div>", unsafe_allow_html=True)
