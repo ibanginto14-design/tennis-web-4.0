@@ -16,13 +16,7 @@ import streamlit as st
 
 
 # ==========================================================
-# APP VERSION (Cambio 10: "producto" -> What's New + Tour)
-# ==========================================================
-APP_VERSION = "1.0.0"  # Sube esto cuando publiques una nueva versión
-
-
-# ==========================================================
-# CONFIG + CSS (EPIC MOBILE SPORT UI + GIF BACKGROUND)
+# CONFIG + CSS (NEW PRO DESIGN: "NEOCOURT" — no functional changes)
 # ==========================================================
 st.set_page_config(page_title="TennisStats", page_icon="🎾", layout="centered")
 
@@ -54,65 +48,71 @@ BG_GIF = _read_gif_data_uri()
 BG_LAYER = ""
 if BG_GIF:
     BG_LAYER = f"""
-/* Tennis GIF background layer */
+/* Subtle moving media layer */
 [data-testid="stAppViewContainer"]::after{{
   content:"";
   position: fixed;
-  inset: -12%;
+  inset: -14%;
   background-image: url("{BG_GIF}");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  opacity: 0.14;
-  filter: saturate(1.10) contrast(1.08);
+  opacity: 0.10;
+  filter: saturate(1.05) contrast(1.08) blur(2px);
   pointer-events: none;
   z-index: 0;
 }}
 """
 
+# ---------- NEW THEME (NEOCOURT) ----------
 PRO_CSS = f"""
 <style>
 :root{{
-  --bg:#070a12;
-  --bg2:#0b1222;
-  --card: rgba(255,255,255,0.07);
-  --card2: rgba(255,255,255,0.09);
+  --bg0:#06070c;
+  --bg1:#070a14;
+  --bg2:#0b1024;
+  --card: rgba(255,255,255,0.06);
+  --card2: rgba(255,255,255,0.08);
   --text: rgba(255,255,255,0.95);
-  --muted: rgba(255,255,255,0.72);
+  --muted: rgba(255,255,255,0.74);
   --muted2: rgba(255,255,255,0.62);
   --stroke: rgba(255,255,255,0.14);
   --stroke2: rgba(255,255,255,0.10);
-  --accent:#22c55e;
-  --accent2:#60a5fa;
-  --danger:#fb7185;
-  --warn:#fbbf24;
+
+  /* NeoCourt accents */
+  --accent:#00E5FF;   /* cyan */
+  --accent2:#A855F7;  /* violet */
+  --warn:#FBBF24;
+  --danger:#FB7185;
+
   --radius: 18px;
-  --radius2: 22px;
-  --shadow: 0 22px 60px rgba(0,0,0,.45);
-  --shadow2: 0 14px 34px rgba(0,0,0,.38);
-  --focus: 0 0 0 3px rgba(96,165,250,.22);
+  --radius2: 24px;
+  --shadow: 0 24px 70px rgba(0,0,0,.55);
+  --shadow2: 0 16px 36px rgba(0,0,0,.40);
+  --focus: 0 0 0 3px rgba(0,229,255,.18);
 }}
 
 *{{ -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }}
 html, body, [data-testid="stAppViewContainer"]{{
   color: var(--text);
-  background: radial-gradient(900px 520px at 14% -8%, rgba(34,197,94,.18), transparent 60%),
-              radial-gradient(900px 520px at 86% -8%, rgba(96,165,250,.16), transparent 60%),
-              radial-gradient(1000px 600px at 50% 120%, rgba(251,191,36,.10), transparent 60%),
-              linear-gradient(180deg, var(--bg), var(--bg2));
+  background:
+    radial-gradient(1100px 520px at 15% -10%, rgba(0,229,255,.16), transparent 58%),
+    radial-gradient(1100px 520px at 85% -10%, rgba(168,85,247,.14), transparent 58%),
+    radial-gradient(1200px 700px at 50% 120%, rgba(251,191,36,.08), transparent 60%),
+    linear-gradient(180deg, var(--bg0), var(--bg2));
 }}
 
-/* Subtle grid overlay */
+/* Court lines overlay */
 [data-testid="stAppViewContainer"]::before{{
   content:"";
   position: fixed;
   inset: 0;
   pointer-events:none;
-  opacity: .22;
+  opacity: .28;
   background:
-    linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px) 0 0 / 140px 140px,
-    linear-gradient(0deg, rgba(255,255,255,.028) 1px, transparent 1px) 0 0 / 140px 140px;
-  mask-image: radial-gradient(circle at 50% 0%, black 18%, transparent 62%);
+    linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px) 0 0 / 160px 160px,
+    linear-gradient(0deg, rgba(255,255,255,.03) 1px, transparent 1px) 0 0 / 160px 160px;
+  mask-image: radial-gradient(circle at 50% 0%, black 22%, transparent 68%);
   z-index: 0;
 }}
 
@@ -121,14 +121,20 @@ html, body, [data-testid="stAppViewContainer"]{{
 /* Keep content above */
 .block-container, header, section, footer {{ position: relative; z-index: 1; }}
 
+/* Wider + more "app" feeling */
 .block-container{{
-  padding-top: 0.75rem;
-  padding-bottom: 1.25rem;
-  max-width: 980px;
+  padding-top: 0.65rem;
+  padding-bottom: 1.15rem;
+  max-width: 1040px;
 }}
 
-header[data-testid="stHeader"]{{ height: 0.35rem; background: transparent; }}
-div[data-testid="stVerticalBlock"] > div {{ gap: 0.55rem; }}
+header[data-testid="stHeader"]{{
+  height: 0.0rem;
+  background: transparent;
+}}
+
+/* tighten gaps slightly */
+div[data-testid="stVerticalBlock"] > div {{ gap: 0.50rem; }}
 
 .stCaption, [data-testid="stCaptionContainer"]{{ color: var(--muted2) !important; }}
 .small-note{{ color: var(--muted); font-size: .92rem; line-height: 1.25rem; }}
@@ -137,43 +143,80 @@ div[data-testid="stVerticalBlock"] > div {{ gap: 0.55rem; }}
 /* Dividers */
 hr, [data-testid="stDivider"]{{
   border-color: var(--stroke2) !important;
-  margin: 0.35rem 0;
+  margin: 0.30rem 0;
 }}
 
-/* Cards */
+/* Sticky top bar (visual only) */
+.ts-topbar{{
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  padding: 8px 0 10px 0;
+  margin-bottom: 6px;
+  backdrop-filter: blur(12px);
+}}
+.ts-topbar-inner{{
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.35), rgba(0,0,0,0.20));
+  box-shadow: 0 14px 32px rgba(0,0,0,.38);
+  padding: 10px 12px;
+}}
+.ts-mini{{
+  display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+}}
+.ts-mini b{{ font-weight: 1000; }}
+.ts-mini .tag{{
+  display:inline-flex; align-items:center; gap:8px;
+  padding: 6px 10px; border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.20);
+  font-weight: 950; font-size: .88rem;
+}}
+.ts-mini .dot{{
+  width: 9px; height: 9px; border-radius: 999px; background: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0,229,255,.16);
+}}
+
+/* Cards: "NeoCourt" glass + neon edge */
 .ts-card{{
-  border: 1px solid var(--stroke);
+  border: 1px solid rgba(255,255,255,0.12);
   border-radius: var(--radius2);
-  background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.06));
+  background:
+    radial-gradient(900px 240px at 12% 0%, rgba(0,229,255,.10), transparent 60%),
+    radial-gradient(900px 240px at 88% 0%, rgba(168,85,247,.10), transparent 60%),
+    linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.05));
   box-shadow: var(--shadow2);
   padding: 12px 12px;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px);
 }}
 .ts-card.tight{{ padding: 10px 10px; }}
 .ts-card.pad{{ padding: 14px 14px; }}
+
 .ts-row{{ display:flex; align-items:center; justify-content:space-between; gap:12px; }}
-.ts-title{{ font-size: 1.10rem; font-weight: 1000; letter-spacing: .3px; margin: 0; }}
-.ts-sub{{ margin: 4px 0 0 0; color: var(--muted); font-weight: 750; font-size: .92rem; }}
+.ts-title{{ font-size: 1.12rem; font-weight: 1100; letter-spacing: .2px; margin: 0; }}
+.ts-sub{{ margin: 4px 0 0 0; color: var(--muted); font-weight: 800; font-size: .92rem; }}
+
 .ts-chiprow{{ margin-top: 10px; display:flex; flex-wrap:wrap; gap: 8px; }}
 .ts-chip{{
   display:inline-flex; align-items:center; gap: 8px;
   padding: 6px 10px;
   border-radius: 999px;
-  border: 1px solid var(--stroke2);
+  border: 1px solid rgba(255,255,255,0.12);
   background: rgba(0,0,0,0.18);
   font-weight: 950; font-size: .88rem; color: var(--text);
 }}
 .ts-dot{{ width: 9px; height: 9px; border-radius: 999px; background: var(--accent);
-  box-shadow: 0 0 0 3px rgba(34,197,94,.18);
+  box-shadow: 0 0 0 3px rgba(0,229,255,.16);
 }}
 
-/* Inputs - less boxy */
+/* Inputs */
 div[data-baseweb="select"] > div,
 div[data-baseweb="input"] > div,
 div[data-baseweb="textarea"] > div{{
   background: rgba(0,0,0,0.22) !important;
-  border: 1px solid var(--stroke) !important;
-  border-radius: 14px !important;
+  border: 1px solid rgba(255,255,255,0.14) !important;
+  border-radius: 16px !important;
   box-shadow: 0 10px 18px rgba(0,0,0,.22);
 }}
 div[data-baseweb="input"] input,
@@ -187,95 +230,98 @@ div[data-baseweb="input"] > div:focus-within,
 div[data-baseweb="textarea"] > div:focus-within{{
   outline: none !important;
   box-shadow: 0 10px 18px rgba(0,0,0,.25), var(--focus) !important;
-  border-color: rgba(96,165,250,.35) !important;
+  border-color: rgba(0,229,255,.35) !important;
 }}
 
-/* Buttons */
+/* Buttons: neon edge */
 .stButton>button{{
   width: 100%;
-  padding: 0.62rem 0.92rem;
-  border-radius: 16px;
-  border: 1px solid var(--stroke);
-  background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06));
+  padding: 0.70rem 0.95rem;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background:
+    radial-gradient(700px 120px at 20% 0%, rgba(0,229,255,.18), transparent 60%),
+    radial-gradient(700px 120px at 80% 0%, rgba(168,85,247,.14), transparent 60%),
+    linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.05));
   color: var(--text);
-  font-weight: 980;
-  box-shadow: 0 14px 24px rgba(0,0,0,.30);
+  font-weight: 1000;
+  box-shadow: 0 16px 28px rgba(0,0,0,.34);
   transition: transform .06s ease, box-shadow .12s ease, border-color .12s ease, filter .12s ease;
 }}
 .stButton>button:hover{{
-  border-color: rgba(34,197,94,.35);
-  box-shadow: 0 18px 34px rgba(0,0,0,.36);
+  border-color: rgba(0,229,255,.40);
+  box-shadow: 0 20px 40px rgba(0,0,0,.42);
 }}
-.stButton>button:active{{ transform: translateY(1px) scale(0.98); filter: brightness(1.05); }}
-.stButton>button:focus{{ outline: none !important; box-shadow: 0 14px 24px rgba(0,0,0,.30), var(--focus) !important; }}
+.stButton>button:active{{ transform: translateY(1px) scale(0.985); filter: brightness(1.06); }}
+.stButton>button:focus{{ outline: none !important; box-shadow: 0 16px 28px rgba(0,0,0,.34), var(--focus) !important; }}
 
-/* Download button */
+/* Download */
 [data-testid="stDownloadButton"] > button{{
-  border-radius: 16px !important;
-  border: 1px solid rgba(96,165,250,.28) !important;
-  background: linear-gradient(180deg, rgba(96,165,250,.18), rgba(255,255,255,0.06)) !important;
+  border-radius: 18px !important;
+  border: 1px solid rgba(0,229,255,.22) !important;
+  background: linear-gradient(180deg, rgba(0,229,255,.14), rgba(255,255,255,0.06)) !important;
   color: var(--text) !important;
-  font-weight: 980 !important;
+  font-weight: 1000 !important;
 }}
 
 /* Expanders */
 [data-testid="stExpander"]{{
-  border: 1px solid var(--stroke) !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
   border-radius: var(--radius2) !important;
   background: rgba(0,0,0,0.16) !important;
-  box-shadow: 0 18px 40px rgba(0,0,0,.34);
+  box-shadow: 0 18px 40px rgba(0,0,0,.36);
   overflow: hidden;
 }}
-[data-testid="stExpander"] summary{{ font-weight: 980 !important; }}
+[data-testid="stExpander"] summary{{ font-weight: 1000 !important; }}
 
 /* Tabs */
 [data-baseweb="tab-list"]{{
-  background: rgba(0,0,0,0.18);
-  border: 1px solid var(--stroke);
-  border-radius: 16px;
+  background: rgba(0,0,0,0.20);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 18px;
   padding: 6px;
   gap: 6px;
-  box-shadow: 0 12px 22px rgba(0,0,0,.25);
+  box-shadow: 0 12px 22px rgba(0,0,0,.28);
 }}
 button[role="tab"]{{
-  border-radius: 12px !important;
-  font-weight: 980 !important;
+  border-radius: 14px !important;
+  font-weight: 1000 !important;
   color: var(--muted) !important;
 }}
 button[role="tab"][aria-selected="true"]{{
-  background: linear-gradient(180deg, rgba(34,197,94,.20), rgba(0,0,0,.18)) !important;
+  background: linear-gradient(180deg, rgba(0,229,255,.16), rgba(0,0,0,.18)) !important;
   color: var(--text) !important;
-  border: 1px solid rgba(34,197,94,.28) !important;
+  border: 1px solid rgba(0,229,255,.22) !important;
 }}
 
 /* Alerts / uploader */
 [data-testid="stAlert"]{{
-  border-radius: 16px !important;
-  border: 1px solid var(--stroke) !important;
+  border-radius: 18px !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
   background: rgba(0,0,0,0.18) !important;
-  box-shadow: 0 12px 22px rgba(0,0,0,.25);
+  box-shadow: 0 12px 22px rgba(0,0,0,.28);
 }}
 section[data-testid="stFileUploaderDropzone"]{{
-  border-radius: 16px !important;
+  border-radius: 18px !important;
   border: 1px dashed rgba(255,255,255,0.22) !important;
   background: rgba(0,0,0,0.14) !important;
-  box-shadow: 0 12px 22px rgba(0,0,0,.25);
+  box-shadow: 0 12px 22px rgba(0,0,0,.28);
 }}
 
 /* Segmented control nav */
 div[data-testid="stSegmentedControl"] > div{{
-  border-radius: 18px !important;
-  border: 1px solid var(--stroke) !important;
-  background: rgba(0,0,0,0.20) !important;
-  box-shadow: 0 12px 22px rgba(0,0,0,.28) !important;
+  border-radius: 20px !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  background: rgba(0,0,0,0.22) !important;
+  box-shadow: 0 12px 24px rgba(0,0,0,.32) !important;
   padding: 6px !important;
 }}
-div[data-testid="stSegmentedControl"] label{{ font-weight: 950 !important; color: var(--muted) !important; }}
+div[data-testid="stSegmentedControl"] label{{ font-weight: 1000 !important; color: var(--muted) !important; }}
 div[data-testid="stSegmentedControl"] label[data-selected="true"]{{ color: var(--text) !important; }}
 
-/* Ring animation */
+/* Ring animation (unchanged behavior) */
 .ring-wrap{{ display:flex; gap: 12px; align-items:center; }}
-.ringSvg{{ width: 64px; height: 64px; filter: drop-shadow(0 14px 24px rgba(0,0,0,.30)); }}
+.ringSvg{{ width: 64px; height: 64px; filter: drop-shadow(0 14px 24px rgba(0,0,0,.32)); }}
 .ringTrack{{ stroke: rgba(255,255,255,.14); stroke-width: 10; }}
 .ringProg{{ stroke: var(--ringc); stroke-width: 10; stroke-linecap: round;
   transform: rotate(-90deg); transform-origin: 50% 50%;
@@ -288,36 +334,36 @@ div[data-testid="stSegmentedControl"] label[data-selected="true"]{{ color: var(-
   to   {{ stroke-dashoffset: calc(var(--circ) * (1 - var(--p))); }}
 }}
 .ringCenter{{ fill: rgba(0,0,0,0.25); stroke: rgba(255,255,255,0.10); stroke-width: 1; }}
-.ring-val{{ font-weight: 1000; fill: rgba(255,255,255,0.95); font-size: 12px; }}
-.ring-txt .t1{{ font-weight: 1000; line-height: 1.05rem; }}
-.ring-txt .t2{{ color: var(--muted); font-weight: 800; font-size: .88rem; margin-top: 2px; }}
+.ring-val{{ font-weight: 1100; fill: rgba(255,255,255,0.95); font-size: 12px; }}
+.ring-txt .t1{{ font-weight: 1100; line-height: 1.05rem; }}
+.ring-txt .t2{{ color: var(--muted); font-weight: 850; font-size: .88rem; margin-top: 2px; }}
 
 /* Score pills */
 .pills{{ display:flex; gap: 8px; flex-wrap:wrap; margin-top:8px; }}
 .pill{{
   display:inline-flex; align-items:center; gap:8px;
   padding: 7px 10px; border-radius: 999px;
-  border: 1px solid var(--stroke2);
+  border: 1px solid rgba(255,255,255,0.12);
   background: rgba(0,0,0,0.18);
-  font-weight: 950; font-size:.90rem;
+  font-weight: 1000; font-size:.90rem;
 }}
-.pill b{{ font-weight:1000; }}
+.pill b{{ font-weight:1100; }}
 
 /* Last points timeline */
 .lp{{ display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }}
 .dot{{
   width: 14px; height: 14px; border-radius: 999px;
   border: 1px solid rgba(255,255,255,0.18);
-  box-shadow: 0 10px 18px rgba(0,0,0,.26);
+  box-shadow: 0 10px 18px rgba(0,0,0,.28);
 }}
-.dot.win{{ background: rgba(34,197,94,.96); }}
+.dot.win{{ background: rgba(0,229,255,.92); }}
 .dot.lose{{ background: rgba(251,113,133,.92); }}
 .dot.pressure{{ outline: 3px solid rgba(251,191,36,.26); }}
 
 /* Charts */
 [data-testid="stVegaLiteChart"] {{
   background: rgba(0,0,0,0.10) !important;
-  border-radius: 16px !important;
+  border-radius: 18px !important;
   border: 1px solid rgba(255,255,255,0.10) !important;
 }}
 
@@ -329,10 +375,10 @@ div[data-testid="stSegmentedControl"] label[data-selected="true"]{{ color: var(-
   100% {{ transform: scale(1); }}
 }}
 
-/* UI modes */
+/* UI modes (layout + CSS only) */
 .ui-pista .ts-title{{ font-size: 1.22rem; }}
 .ui-pista .ts-sub{{ font-size: .98rem; }}
-.ui-pista .stButton>button{{ padding: 0.90rem 1.05rem; border-radius: 18px; font-size: 1.02rem; }}
+.ui-pista .stButton>button{{ padding: 0.92rem 1.06rem; border-radius: 20px; font-size: 1.02rem; }}
 .ui-pista .small-note{{ font-size: .98rem; }}
 .ui-pista .ts-card{{ padding: 12px 12px; }}
 
@@ -340,42 +386,43 @@ div[data-testid="stSegmentedControl"] label[data-selected="true"]{{ color: var(-
 .ui-casa .small-note{{ font-size: .90rem; }}
 .ui-casa .ts-title{{ font-size: 1.08rem; }}
 
-/* Hero (auth) */
+/* Auth: NeoCourt hero */
 .hero{{
   border: 1px solid rgba(255,255,255,0.14);
-  border-radius: 26px;
+  border-radius: 28px;
   overflow: hidden;
-  box-shadow: 0 22px 60px rgba(0,0,0,.52);
+  box-shadow: var(--shadow);
   position: relative;
 }}
 .heroBg{{
   position:absolute; inset:-12%;
-  background-image: url("{BG_GIF}");
+  background:
+    radial-gradient(900px 420px at 18% 15%, rgba(0,229,255,.22), transparent 60%),
+    radial-gradient(900px 420px at 86% 20%, rgba(168,85,247,.20), transparent 62%),
+    url("{BG_GIF}");
   background-size: cover;
   background-position: center;
-  filter: blur(10px) saturate(1.08) contrast(1.06);
-  opacity: .70;
+  filter: blur(10px) saturate(1.05) contrast(1.06);
+  opacity: .78;
 }}
 .heroOverlay{{
   position:absolute; inset:0;
-  background: radial-gradient(900px 400px at 18% 12%, rgba(34,197,94,.24), transparent 60%),
-              radial-gradient(900px 420px at 86% 18%, rgba(96,165,250,.22), transparent 62%),
-              linear-gradient(180deg, rgba(0,0,0,.22), rgba(0,0,0,.55));
+  background: linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.62));
 }}
 .heroInner{{ position:relative; padding: 18px 16px 16px 16px; }}
-.heroClaim{{ font-size: 1.55rem; font-weight: 1100; letter-spacing: .4px; margin: 0; line-height: 1.1; }}
+.heroClaim{{ font-size: 1.58rem; font-weight: 1200; letter-spacing: .35px; margin: 0; line-height: 1.1; }}
 .heroSub{{ margin-top: 8px; color: rgba(255,255,255,.84); font-weight: 850; }}
 .heroName{{
   margin-top: 10px;
   display:inline-flex; align-items:center; gap:8px;
   padding: 8px 12px; border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.16);
+  border: 1px solid rgba(255,255,255,.14);
   background: rgba(0,0,0,.20);
-  font-weight: 1000;
+  font-weight: 1100;
 }}
 .heroShine{{
   position:absolute; inset:0;
-  background: radial-gradient(circle at 22% 10%, rgba(255,255,255,.16), transparent 35%);
+  background: radial-gradient(circle at 20% 10%, rgba(255,255,255,.16), transparent 36%);
   pointer-events:none;
 }}
 </style>
@@ -459,19 +506,6 @@ def save_history_to_disk(user_key: str, matches: list) -> None:
     payload = {"matches": matches}
     with open(path, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
-
-
-# ==========================================================
-# (Cambio 10) Persistencia ligera de UX: "What's New" + Tour
-# ==========================================================
-def update_user_meta(user_key: str, patch: dict) -> None:
-    try:
-        users = load_users()
-        if user_key in users and isinstance(users[user_key], dict):
-            users[user_key].update(patch)
-            save_users(users)
-    except Exception:
-        pass
 
 
 # ==========================================================
@@ -1110,14 +1144,6 @@ def ss_init():
     if "_last_p_match" not in st.session_state:
         st.session_state._last_p_match = None
 
-    # (Cambio 10) Flags UX: What's New + Tour
-    if "_show_whats_new" not in st.session_state:
-        st.session_state._show_whats_new = False
-    if "_tour_open" not in st.session_state:
-        st.session_state._tour_open = False
-    if "_tour_step" not in st.session_state:
-        st.session_state._tour_step = 1
-
 
 ss_init()
 
@@ -1186,8 +1212,8 @@ def last_points_timeline(points, n=18):
             cls += " pressure"
         dots.append(f"<span class='dot {cls}' title='{p.get('result','')}'></span>")
     html = f"""
-    <div style="font-weight:1000;">Últimos puntos</div>
-    <div class="small-note">Verde=ganado · Rosa=perdido · Borde=presión</div>
+    <div style="font-weight:1100;">Últimos puntos</div>
+    <div class="small-note">Cyan=ganado · Rosa=perdido · Borde=presión</div>
     <div class="lp">{''.join(dots) if dots else "<span class='small-note'>Aún no hay puntos.</span>"}</div>
     """
     st.markdown(f"<div class='ts-card'>{html}</div>", unsafe_allow_html=True)
@@ -1195,21 +1221,21 @@ def last_points_timeline(points, n=18):
 
 def court_svg(surface: str):
     surf_color = {
-        "Tierra batida": "#f97316",
-        "Pista rápida": "#60a5fa",
+        "Tierra batida": "#fb923c",
+        "Pista rápida": "#00E5FF",
         "Hierba": "#22c55e",
-        "Indoor": "#a78bfa",
-    }.get(surface, "#60a5fa")
+        "Indoor": "#A855F7",
+    }.get(surface, "#00E5FF")
     html = f"""
     <div class="ts-row">
-      <div style="font-weight:1000;">Pista</div>
+      <div style="font-weight:1100;">Pista</div>
       <div class="small-note">Decorativa</div>
     </div>
-    <svg viewBox="0 0 400 210" width="100%" height="150" style="margin-top:8px; border-radius:16px; overflow:hidden;">
+    <svg viewBox="0 0 400 210" width="100%" height="150" style="margin-top:8px; border-radius:18px; overflow:hidden;">
       <defs>
         <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stop-color="{surf_color}" stop-opacity="0.92"/>
-          <stop offset="1" stop-color="{surf_color}" stop-opacity="0.55"/>
+          <stop offset="0" stop-color="{surf_color}" stop-opacity="0.88"/>
+          <stop offset="1" stop-color="{surf_color}" stop-opacity="0.50"/>
         </linearGradient>
         <pattern id="grain" width="6" height="6" patternUnits="userSpaceOnUse">
           <circle cx="1" cy="2" r="0.7" fill="rgba(255,255,255,0.10)"/>
@@ -1237,7 +1263,7 @@ def icon_svg(kind: str):
     icons = {
         "bolt": """
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M13 2L3 14h8l-1 8 11-14h-8l0-6z" fill="rgba(96,165,250,.92)"/>
+          <path d="M13 2L3 14h8l-1 8 11-14h-8l0-6z" fill="rgba(0,229,255,.92)"/>
         </svg>""",
         "shield": """
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -1254,83 +1280,6 @@ def icon_svg(kind: str):
 
 
 # ==========================================================
-# (Cambio 10) UX overlays: What's New + Tour (3 pasos)
-# ==========================================================
-def whats_new_block():
-    st.markdown("<div class='ts-card pad'>", unsafe_allow_html=True)
-    st.markdown(f"<div class='ts-title'>✨ Novedades · v{APP_VERSION}</div>", unsafe_allow_html=True)
-    small_note("Pequeña guía rápida para sacar el máximo a la app.")
-    st.markdown(
-        """
-- **LIVE**: registra puntos rápido (Punto Yo / Punto Rival) y usa **Finish** si quieres contexto.
-- **ANALYSIS**: mira la **Win Probability** en tiempo real (modelo Markov).
-- **STATS**: revisa tendencia y superficies para ajustar tu plan.
-        """.strip()
-    )
-    c1, c2 = st.columns(2, gap="small")
-    with c1:
-        if st.button("✅ Entendido", use_container_width=True, key="wn_ok"):
-            st.session_state._show_whats_new = False
-            # Persistir que esta versión ya se vio
-            if st.session_state.get("auth_key"):
-                update_user_meta(st.session_state.auth_key, {"last_seen_version": APP_VERSION})
-            st.rerun()
-    with c2:
-        if st.button("🎯 Ver mini-tour", use_container_width=True, key="wn_tour"):
-            st.session_state._show_whats_new = False
-            st.session_state._tour_open = True
-            st.session_state._tour_step = 1
-            if st.session_state.get("auth_key"):
-                update_user_meta(st.session_state.auth_key, {"last_seen_version": APP_VERSION})
-            st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
-def tour_block():
-    step = int(st.session_state.get("_tour_step", 1) or 1)
-    st.markdown("<div class='ts-card pad'>", unsafe_allow_html=True)
-    st.markdown("<div class='ts-title'>🧭 Mini-tour (3 pasos)</div>", unsafe_allow_html=True)
-
-    if step == 1:
-        st.write("**Paso 1/3 — LIVE**")
-        small_note("Registra puntos en 1 toque. Finish es opcional y se aplica al siguiente punto.")
-    elif step == 2:
-        st.write("**Paso 2/3 — ANALYSIS**")
-        small_note("La Win Probability se calcula con un modelo Markov (punto→juego→set→BO3).")
-    else:
-        st.write("**Paso 3/3 — STATS / Historial**")
-        small_note("Guarda partidos, edita/borrar y exporta/importa tu historial en JSON (por usuario).")
-
-    b1, b2, b3 = st.columns(3, gap="small")
-    with b1:
-        if st.button("⏭️ Saltar", use_container_width=True, key="tour_skip"):
-            st.session_state._tour_open = False
-            st.session_state._tour_step = 1
-            if st.session_state.get("auth_key"):
-                update_user_meta(st.session_state.auth_key, {"tour_done": True})
-            st.rerun()
-    with b2:
-        prev_disabled = (step <= 1)
-        if st.button("⬅️ Atrás", use_container_width=True, disabled=prev_disabled, key="tour_prev"):
-            st.session_state._tour_step = max(1, step - 1)
-            st.rerun()
-    with b3:
-        if step < 3:
-            if st.button("➡️ Siguiente", use_container_width=True, key="tour_next"):
-                st.session_state._tour_step = min(3, step + 1)
-                st.rerun()
-        else:
-            if st.button("✅ Terminar", use_container_width=True, key="tour_done"):
-                st.session_state._tour_open = False
-                st.session_state._tour_step = 1
-                if st.session_state.get("auth_key"):
-                    update_user_meta(st.session_state.auth_key, {"tour_done": True})
-                st.rerun()
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
-# ==========================================================
 # AUTH UI
 # ==========================================================
 def auth_block():
@@ -1342,8 +1291,8 @@ def auth_block():
           <div class="heroOverlay"></div>
           <div class="heroShine"></div>
           <div class="heroInner">
-            <div class="heroClaim">Track. Compete. Improve.</div>
-            <div class="heroSub">Tu partido, punto a punto. Tu progreso, partido a partido.</div>
+            <div class="heroClaim">NEOCOURT — Match Intelligence</div>
+            <div class="heroSub">Rápido en pista. Profundo en casa. Preciso siempre.</div>
             <div class="heroName">🎾 {name_hint}</div>
           </div>
         </div>
@@ -1380,14 +1329,6 @@ def auth_block():
                 st.session_state.auth_user = rec.get("display", u.strip() or key)
                 st.session_state.auth_key = key
                 st.session_state.history.matches = load_history_from_disk(key)
-
-                # (Cambio 10) Decide si mostrar "What's New" y/o Tour
-                last_seen = (rec.get("last_seen_version") or "").strip()
-                tour_done = bool(rec.get("tour_done", False))
-                st.session_state._show_whats_new = (last_seen != APP_VERSION)
-                st.session_state._tour_open = (not tour_done) and (not st.session_state._show_whats_new)
-                st.session_state._tour_step = 1
-
                 st.success("Acceso correcto ✅")
                 st.rerun()
             else:
@@ -1418,9 +1359,6 @@ def auth_block():
                 "salt": _b64e(salt),
                 "hash": hash_pin(new_pin, salt),
                 "created": datetime.now().isoformat(timespec="seconds"),
-                # (Cambio 10) Inicial UX meta
-                "last_seen_version": "",
-                "tour_done": False,
             }
             users[key] = rec
             save_users(users)
@@ -1444,29 +1382,13 @@ with st.sidebar:
     st.markdown("### 🎾 TennisStats")
     st.caption("Panel (en móvil puedes colapsarlo)")
     st.markdown(f"**👤 Usuario:** `{user_display}`")
-    st.caption(f"v{APP_VERSION}")
     st.divider()
     mode_label = "🏟️ Pista" if st.session_state.ui_mode == "Pista" else "🏠 Casa"
     mode = st.segmented_control("Modo", options=["🏟️ Pista", "🏠 Casa"], default=mode_label, label_visibility="visible")
     if mode:
         st.session_state.ui_mode = "Pista" if "Pista" in mode else "Casa"
-
-    # (Cambio 10) Acceso manual a What's New / Tour (no afecta funciones)
-    st.divider()
-    if st.button("✨ Novedades", use_container_width=True):
-        st.session_state._show_whats_new = True
-        st.session_state._tour_open = False
-        st.session_state._tour_step = 1
-        st.rerun()
-    if st.button("🧭 Mini-tour", use_container_width=True):
-        st.session_state._tour_open = True
-        st.session_state._show_whats_new = False
-        st.session_state._tour_step = 1
-        st.rerun()
-
     st.divider()
 
-# Apply UI mode class wrapper
 ui_cls = "ui-pista" if st.session_state.ui_mode == "Pista" else "ui-casa"
 st.markdown(f"<div class='{ui_cls}'>", unsafe_allow_html=True)
 
@@ -1474,6 +1396,38 @@ st.markdown(f"<div class='{ui_cls}'>", unsafe_allow_html=True)
 page_map = {"🎾": "LIVE", "📈": "ANALYSIS", "📊": "STATS", "📰": "NEWS", "🧠": "PSICO"}
 labels = list(page_map.keys())
 current_label = next((k for k, v in page_map.items() if v == st.session_state.page), "🎾")
+
+# TOP mini sticky bar (visual-only)
+st_ = live.state
+pts_label_now = f"TB {st_.pts_me}-{st_.pts_opp}" if st_.in_tiebreak else game_point_label(st_.pts_me, st_.pts_opp)
+total_pts, won_pts, pct_pts = live.points_stats()
+p_point = live.estimate_point_win_prob()
+p_match = live.match_win_prob() * 100.0
+
+last_pm = st.session_state.get("_last_p_match", None)
+pulse = False
+if last_pm is not None and abs(p_match - float(last_pm)) >= 6.0:
+    pulse = True
+st.session_state._last_p_match = float(p_match)
+wp_cls = "pulseWinProb" if pulse else ""
+
+st.markdown(
+    f"""
+    <div class="ts-topbar">
+      <div class="ts-topbar-inner">
+        <div class="ts-mini">
+          <div class="tag"><span class="dot"></span> <b>{user_display}</b></div>
+          <div class="tag {wp_cls}"><span class="dot" style="background:var(--accent2); box-shadow:0 0 0 3px rgba(168,85,247,.16);"></span> WinProb <b>{p_match:.1f}%</b></div>
+          <div class="tag"><span class="dot" style="background:var(--warn); box-shadow:0 0 0 3px rgba(251,191,36,.16);"></span> Sets <b>{st_.sets_me}-{st_.sets_opp}</b></div>
+          <div class="tag"><span class="dot" style="background:var(--danger); box-shadow:0 0 0 3px rgba(251,113,133,.14);"></span> Juegos <b>{st_.games_me}-{st_.games_opp}</b></div>
+          <div class="tag"><span class="dot" style="background:rgba(255,255,255,.60); box-shadow:none;"></span> Pts <b>{pts_label_now}</b></div>
+        </div>
+      </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
 nav = st.segmented_control(" ", options=labels, default=current_label, label_visibility="collapsed")
 if nav and page_map.get(nav) != st.session_state.page:
     st.session_state.page = page_map[nav]
@@ -1492,42 +1446,25 @@ with st.sidebar:
         st.session_state.finish = None
         st.rerun()
 
-# TOP DASHBOARD (visual, compact)
-total_pts, won_pts, pct_pts = live.points_stats()
-p_point = live.estimate_point_win_prob()
-p_match = live.match_win_prob() * 100.0
-
-last_pm = st.session_state.get("_last_p_match", None)
-pulse = False
-if last_pm is not None and abs(p_match - float(last_pm)) >= 6.0:
-    pulse = True
-st.session_state._last_p_match = float(p_match)
-
-wp_cls = "pulseWinProb" if pulse else ""
+# TOP DASHBOARD (same data, new tone)
 st.markdown(
     f"""
     <div class="ts-card pad">
-      <div class="ts-title">🏟️ TennisStats — Dashboard</div>
-      <div class="ts-sub">UI épica (móvil) · Marcador live · Tendencias · Historial privado</div>
+      <div class="ts-title">⚡ NEOCOURT Dashboard</div>
+      <div class="ts-sub">Diseño neo-profesional · Live match · Tendencias · Historial privado</div>
       <div class="ts-chiprow">
         <div class="ts-chip"><span class="ts-dot"></span> {user_display}</div>
         <div class="ts-chip {wp_cls}">
-          <span class="ts-dot" style="background: var(--accent2); box-shadow:0 0 0 3px rgba(96,165,250,.18);"></span>
+          <span class="ts-dot" style="background: var(--accent2); box-shadow:0 0 0 3px rgba(168,85,247,.16);"></span>
           Win Prob <b>{p_match:.1f}%</b>
         </div>
-        <div class="ts-chip"><span class="ts-dot" style="background: var(--warn); box-shadow:0 0 0 3px rgba(251,191,36,.18);"></span> p(punto) <b>{p_point:.2f}</b></div>
-        <div class="ts-chip"><span class="ts-dot" style="background: var(--danger); box-shadow:0 0 0 3px rgba(251,113,133,.18);"></span> Puntos <b>{won_pts}/{total_pts}</b></div>
+        <div class="ts-chip"><span class="ts-dot" style="background: var(--warn); box-shadow:0 0 0 3px rgba(251,191,36,.16);"></span> p(punto) <b>{p_point:.2f}</b></div>
+        <div class="ts-chip"><span class="ts-dot" style="background: var(--danger); box-shadow:0 0 0 3px rgba(251,113,133,.14);"></span> Puntos <b>{won_pts}/{total_pts}</b></div>
       </div>
     </div>
     """,
     unsafe_allow_html=True,
 )
-
-# (Cambio 10) Mostrar "What's New" y/o Tour (solo UX, no toca funciones)
-if st.session_state.get("_show_whats_new", False):
-    whats_new_block()
-if st.session_state.get("_tour_open", False):
-    tour_block()
 
 top1, top2 = st.columns(2, gap="small")
 with top1:
@@ -1553,7 +1490,7 @@ if st.session_state.page == "LIVE":
         st.markdown("</div>", unsafe_allow_html=True)
     with b:
         st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
-        st.markdown("<div style='font-weight:1000;'>Marcador</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-weight:1100;'>Marcador</div>", unsafe_allow_html=True)
         st.markdown(
             f"<div class='small-note'><span class='mono'>Sets {st_.sets_me}-{st_.sets_opp} · "
             f"Juegos {st_.games_me}-{st_.games_opp} · Puntos {pts_label}</span></div>",
@@ -1598,7 +1535,7 @@ if st.session_state.page == "LIVE":
     st.subheader("Registrar punto", anchor=False)
     r1, r2 = st.columns(2, gap="small")
     with r1:
-        if st.button("🟩 Punto Yo", use_container_width=True):
+        if st.button("🟦 Punto Yo", use_container_width=True):
             live.add_point("win", {"finish": st.session_state.finish})
             st.session_state.finish = None
             st.rerun()
@@ -2010,11 +1947,10 @@ else:
                     src="data:application/pdf;base64,{b64}"
                     width="100%"
                     height="650"
-                    style="border: 1px solid rgba(255,255,255,0.14); border-radius: 14px; background: rgba(0,0,0,0.18);"
+                    style="border: 1px solid rgba(255,255,255,0.14); border-radius: 18px; background: rgba(0,0,0,0.18);"
                 ></iframe>
                 """
                 st.components.v1.html(html, height=680, scrolling=False)
     st.markdown("</div>", unsafe_allow_html=True)
 
-# close ui wrapper
 st.markdown("</div>", unsafe_allow_html=True)
