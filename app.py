@@ -105,7 +105,7 @@ html, body, [data-testid="stAppViewContainer"]{{
   filter: saturate(1.10) contrast(1.08);
   pointer-events: none;
   z-index: 0; /* <-- CLAVE: antes estaba en -1 */
-}}
+}
 """}
 
 /* Keep content above */
@@ -1763,3 +1763,4 @@ else:
                 """
                 st.components.v1.html(html, height=680, scrolling=False)
     st.markdown("</div>", unsafe_allow_html=True)
+
