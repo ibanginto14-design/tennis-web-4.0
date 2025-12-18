@@ -16,6 +16,12 @@ import streamlit as st
 
 
 # ==========================================================
+# APP VERSION (Cambio 10: "producto" -> What's New + Tour)
+# ==========================================================
+APP_VERSION = "1.0.0"  # Sube esto cuando publiques una nueva versión
+
+
+# ==========================================================
 # CONFIG + CSS (EPIC MOBILE SPORT UI + GIF BACKGROUND)
 # ==========================================================
 st.set_page_config(page_title="TennisStats", page_icon="🎾", layout="centered")
@@ -64,8 +70,6 @@ if BG_GIF:
 }}
 """
 
-# =======================  VISUAL UPGRADE  =======================
-# Solo CSS/UI: no cambia lógica ni funciones.
 PRO_CSS = f"""
 <style>
 :root{{
@@ -87,7 +91,6 @@ PRO_CSS = f"""
   --shadow: 0 22px 60px rgba(0,0,0,.45);
   --shadow2: 0 14px 34px rgba(0,0,0,.38);
   --focus: 0 0 0 3px rgba(96,165,250,.22);
-  --glow: 0 0 0 1px rgba(255,255,255,.08), 0 18px 44px rgba(0,0,0,.42);
 }}
 
 *{{ -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }}
@@ -118,15 +121,6 @@ html, body, [data-testid="stAppViewContainer"]{{
 /* Keep content above */
 .block-container, header, section, footer {{ position: relative; z-index: 1; }}
 
-/* Smooth entrance for main content (page reruns feel “premium”) */
-@keyframes floatIn {{
-  from {{ opacity: 0; transform: translateY(10px); }}
-  to   {{ opacity: 1; transform: translateY(0px); }}
-}}
-.block-container > div {{
-  animation: floatIn .35s ease-out both;
-}}
-
 .block-container{{
   padding-top: 0.75rem;
   padding-bottom: 1.25rem;
@@ -140,18 +134,13 @@ div[data-testid="stVerticalBlock"] > div {{ gap: 0.55rem; }}
 .small-note{{ color: var(--muted); font-size: .92rem; line-height: 1.25rem; }}
 .mono{{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }}
 
-/* Nicer scrollbars */
-*::-webkit-scrollbar{{ height: 10px; width: 10px; }}
-*::-webkit-scrollbar-thumb{{ background: rgba(255,255,255,.12); border-radius: 999px; border: 2px solid rgba(0,0,0,.25); }}
-*::-webkit-scrollbar-track{{ background: rgba(0,0,0,.14); }}
-
 /* Dividers */
 hr, [data-testid="stDivider"]{{
   border-color: var(--stroke2) !important;
   margin: 0.35rem 0;
 }}
 
-/* Cards — upgraded with subtle “neon edge” */
+/* Cards */
 .ts-card{{
   border: 1px solid var(--stroke);
   border-radius: var(--radius2);
@@ -159,24 +148,7 @@ hr, [data-testid="stDivider"]{{
   box-shadow: var(--shadow2);
   padding: 12px 12px;
   backdrop-filter: blur(10px);
-  position: relative;
-  overflow: hidden;
 }}
-.ts-card::before{{
-  content:"";
-  position:absolute;
-  inset:-2px;
-  background: conic-gradient(from 180deg,
-    rgba(34,197,94,.18),
-    rgba(96,165,250,.16),
-    rgba(251,191,36,.12),
-    rgba(251,113,133,.12),
-    rgba(34,197,94,.18));
-  filter: blur(10px);
-  opacity:.45;
-  pointer-events:none;
-}}
-.ts-card > *{{ position: relative; z-index: 1; }}
 .ts-card.tight{{ padding: 10px 10px; }}
 .ts-card.pad{{ padding: 14px 14px; }}
 .ts-row{{ display:flex; align-items:center; justify-content:space-between; gap:12px; }}
@@ -190,7 +162,6 @@ hr, [data-testid="stDivider"]{{
   border: 1px solid var(--stroke2);
   background: rgba(0,0,0,0.18);
   font-weight: 950; font-size: .88rem; color: var(--text);
-  box-shadow: var(--glow);
 }}
 .ts-dot{{ width: 9px; height: 9px; border-radius: 999px; background: var(--accent);
   box-shadow: 0 0 0 3px rgba(34,197,94,.18);
@@ -219,7 +190,7 @@ div[data-baseweb="textarea"] > div:focus-within{{
   border-color: rgba(96,165,250,.35) !important;
 }}
 
-/* Buttons — premium feel */
+/* Buttons */
 .stButton>button{{
   width: 100%;
   padding: 0.62rem 0.92rem;
@@ -291,24 +262,18 @@ section[data-testid="stFileUploaderDropzone"]{{
   box-shadow: 0 12px 22px rgba(0,0,0,.25);
 }}
 
-/* Segmented control nav — sticky top (feels app-like) */
-div[data-testid="stSegmentedControl"]{{
-  position: sticky !important;
-  top: .55rem !important;
-  z-index: 60 !important;
-  backdrop-filter: blur(10px);
-}}
+/* Segmented control nav */
 div[data-testid="stSegmentedControl"] > div{{
   border-radius: 18px !important;
   border: 1px solid var(--stroke) !important;
-  background: rgba(0,0,0,0.22) !important;
+  background: rgba(0,0,0,0.20) !important;
   box-shadow: 0 12px 22px rgba(0,0,0,.28) !important;
   padding: 6px !important;
 }}
 div[data-testid="stSegmentedControl"] label{{ font-weight: 950 !important; color: var(--muted) !important; }}
 div[data-testid="stSegmentedControl"] label[data-selected="true"]{{ color: var(--text) !important; }}
 
-/* (3) Ring animation */
+/* Ring animation */
 .ring-wrap{{ display:flex; gap: 12px; align-items:center; }}
 .ringSvg{{ width: 64px; height: 64px; filter: drop-shadow(0 14px 24px rgba(0,0,0,.30)); }}
 .ringTrack{{ stroke: rgba(255,255,255,.14); stroke-width: 10; }}
@@ -335,7 +300,6 @@ div[data-testid="stSegmentedControl"] label[data-selected="true"]{{ color: var(-
   border: 1px solid var(--stroke2);
   background: rgba(0,0,0,0.18);
   font-weight: 950; font-size:.90rem;
-  box-shadow: var(--glow);
 }}
 .pill b{{ font-weight:1000; }}
 
@@ -376,7 +340,7 @@ div[data-testid="stSegmentedControl"] label[data-selected="true"]{{ color: var(-
 .ui-casa .small-note{{ font-size: .90rem; }}
 .ui-casa .ts-title{{ font-size: 1.08rem; }}
 
-/* Hero */
+/* Hero (auth) */
 .hero{{
   border: 1px solid rgba(255,255,255,0.14);
   border-radius: 26px;
@@ -414,14 +378,6 @@ div[data-testid="stSegmentedControl"] label[data-selected="true"]{{ color: var(-
   background: radial-gradient(circle at 22% 10%, rgba(255,255,255,.16), transparent 35%);
   pointer-events:none;
 }}
-
-/* Tiny “status dot” animation (alive app feel) */
-@keyframes dotPulse {{
-  0% {{ transform: scale(1); opacity: .85; }}
-  50% {{ transform: scale(1.12); opacity: 1; }}
-  100% {{ transform: scale(1); opacity: .85; }}
-}}
-.ts-dot{{ animation: dotPulse 1.8s ease-in-out infinite; }}
 </style>
 """
 st.markdown(PRO_CSS, unsafe_allow_html=True)
@@ -503,6 +459,19 @@ def save_history_to_disk(user_key: str, matches: list) -> None:
     payload = {"matches": matches}
     with open(path, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
+
+
+# ==========================================================
+# (Cambio 10) Persistencia ligera de UX: "What's New" + Tour
+# ==========================================================
+def update_user_meta(user_key: str, patch: dict) -> None:
+    try:
+        users = load_users()
+        if user_key in users and isinstance(users[user_key], dict):
+            users[user_key].update(patch)
+            save_users(users)
+    except Exception:
+        pass
 
 
 # ==========================================================
@@ -1141,6 +1110,14 @@ def ss_init():
     if "_last_p_match" not in st.session_state:
         st.session_state._last_p_match = None
 
+    # (Cambio 10) Flags UX: What's New + Tour
+    if "_show_whats_new" not in st.session_state:
+        st.session_state._show_whats_new = False
+    if "_tour_open" not in st.session_state:
+        st.session_state._tour_open = False
+    if "_tour_step" not in st.session_state:
+        st.session_state._tour_step = 1
+
 
 ss_init()
 
@@ -1277,6 +1254,83 @@ def icon_svg(kind: str):
 
 
 # ==========================================================
+# (Cambio 10) UX overlays: What's New + Tour (3 pasos)
+# ==========================================================
+def whats_new_block():
+    st.markdown("<div class='ts-card pad'>", unsafe_allow_html=True)
+    st.markdown(f"<div class='ts-title'>✨ Novedades · v{APP_VERSION}</div>", unsafe_allow_html=True)
+    small_note("Pequeña guía rápida para sacar el máximo a la app.")
+    st.markdown(
+        """
+- **LIVE**: registra puntos rápido (Punto Yo / Punto Rival) y usa **Finish** si quieres contexto.
+- **ANALYSIS**: mira la **Win Probability** en tiempo real (modelo Markov).
+- **STATS**: revisa tendencia y superficies para ajustar tu plan.
+        """.strip()
+    )
+    c1, c2 = st.columns(2, gap="small")
+    with c1:
+        if st.button("✅ Entendido", use_container_width=True, key="wn_ok"):
+            st.session_state._show_whats_new = False
+            # Persistir que esta versión ya se vio
+            if st.session_state.get("auth_key"):
+                update_user_meta(st.session_state.auth_key, {"last_seen_version": APP_VERSION})
+            st.rerun()
+    with c2:
+        if st.button("🎯 Ver mini-tour", use_container_width=True, key="wn_tour"):
+            st.session_state._show_whats_new = False
+            st.session_state._tour_open = True
+            st.session_state._tour_step = 1
+            if st.session_state.get("auth_key"):
+                update_user_meta(st.session_state.auth_key, {"last_seen_version": APP_VERSION})
+            st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+def tour_block():
+    step = int(st.session_state.get("_tour_step", 1) or 1)
+    st.markdown("<div class='ts-card pad'>", unsafe_allow_html=True)
+    st.markdown("<div class='ts-title'>🧭 Mini-tour (3 pasos)</div>", unsafe_allow_html=True)
+
+    if step == 1:
+        st.write("**Paso 1/3 — LIVE**")
+        small_note("Registra puntos en 1 toque. Finish es opcional y se aplica al siguiente punto.")
+    elif step == 2:
+        st.write("**Paso 2/3 — ANALYSIS**")
+        small_note("La Win Probability se calcula con un modelo Markov (punto→juego→set→BO3).")
+    else:
+        st.write("**Paso 3/3 — STATS / Historial**")
+        small_note("Guarda partidos, edita/borrar y exporta/importa tu historial en JSON (por usuario).")
+
+    b1, b2, b3 = st.columns(3, gap="small")
+    with b1:
+        if st.button("⏭️ Saltar", use_container_width=True, key="tour_skip"):
+            st.session_state._tour_open = False
+            st.session_state._tour_step = 1
+            if st.session_state.get("auth_key"):
+                update_user_meta(st.session_state.auth_key, {"tour_done": True})
+            st.rerun()
+    with b2:
+        prev_disabled = (step <= 1)
+        if st.button("⬅️ Atrás", use_container_width=True, disabled=prev_disabled, key="tour_prev"):
+            st.session_state._tour_step = max(1, step - 1)
+            st.rerun()
+    with b3:
+        if step < 3:
+            if st.button("➡️ Siguiente", use_container_width=True, key="tour_next"):
+                st.session_state._tour_step = min(3, step + 1)
+                st.rerun()
+        else:
+            if st.button("✅ Terminar", use_container_width=True, key="tour_done"):
+                st.session_state._tour_open = False
+                st.session_state._tour_step = 1
+                if st.session_state.get("auth_key"):
+                    update_user_meta(st.session_state.auth_key, {"tour_done": True})
+                st.rerun()
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+# ==========================================================
 # AUTH UI
 # ==========================================================
 def auth_block():
@@ -1326,6 +1380,14 @@ def auth_block():
                 st.session_state.auth_user = rec.get("display", u.strip() or key)
                 st.session_state.auth_key = key
                 st.session_state.history.matches = load_history_from_disk(key)
+
+                # (Cambio 10) Decide si mostrar "What's New" y/o Tour
+                last_seen = (rec.get("last_seen_version") or "").strip()
+                tour_done = bool(rec.get("tour_done", False))
+                st.session_state._show_whats_new = (last_seen != APP_VERSION)
+                st.session_state._tour_open = (not tour_done) and (not st.session_state._show_whats_new)
+                st.session_state._tour_step = 1
+
                 st.success("Acceso correcto ✅")
                 st.rerun()
             else:
@@ -1356,6 +1418,9 @@ def auth_block():
                 "salt": _b64e(salt),
                 "hash": hash_pin(new_pin, salt),
                 "created": datetime.now().isoformat(timespec="seconds"),
+                # (Cambio 10) Inicial UX meta
+                "last_seen_version": "",
+                "tour_done": False,
             }
             users[key] = rec
             save_users(users)
@@ -1379,21 +1444,36 @@ with st.sidebar:
     st.markdown("### 🎾 TennisStats")
     st.caption("Panel (en móvil puedes colapsarlo)")
     st.markdown(f"**👤 Usuario:** `{user_display}`")
+    st.caption(f"v{APP_VERSION}")
     st.divider()
     mode_label = "🏟️ Pista" if st.session_state.ui_mode == "Pista" else "🏠 Casa"
     mode = st.segmented_control("Modo", options=["🏟️ Pista", "🏠 Casa"], default=mode_label, label_visibility="visible")
     if mode:
         st.session_state.ui_mode = "Pista" if "Pista" in mode else "Casa"
+
+    # (Cambio 10) Acceso manual a What's New / Tour (no afecta funciones)
+    st.divider()
+    if st.button("✨ Novedades", use_container_width=True):
+        st.session_state._show_whats_new = True
+        st.session_state._tour_open = False
+        st.session_state._tour_step = 1
+        st.rerun()
+    if st.button("🧭 Mini-tour", use_container_width=True):
+        st.session_state._tour_open = True
+        st.session_state._show_whats_new = False
+        st.session_state._tour_step = 1
+        st.rerun()
+
     st.divider()
 
+# Apply UI mode class wrapper
 ui_cls = "ui-pista" if st.session_state.ui_mode == "Pista" else "ui-casa"
 st.markdown(f"<div class='{ui_cls}'>", unsafe_allow_html=True)
 
+# NAV (mismo contenido funcional)
 page_map = {"🎾": "LIVE", "📈": "ANALYSIS", "📊": "STATS", "📰": "NEWS", "🧠": "PSICO"}
 labels = list(page_map.keys())
 current_label = next((k for k, v in page_map.items() if v == st.session_state.page), "🎾")
-
-# Sticky segmented control already handled by CSS (epic app feel)
 nav = st.segmented_control(" ", options=labels, default=current_label, label_visibility="collapsed")
 if nav and page_map.get(nav) != st.session_state.page:
     st.session_state.page = page_map[nav]
@@ -1412,7 +1492,7 @@ with st.sidebar:
         st.session_state.finish = None
         st.rerun()
 
-# TOP DASHBOARD
+# TOP DASHBOARD (visual, compact)
 total_pts, won_pts, pct_pts = live.points_stats()
 p_point = live.estimate_point_win_prob()
 p_match = live.match_win_prob() * 100.0
@@ -1428,7 +1508,7 @@ st.markdown(
     f"""
     <div class="ts-card pad">
       <div class="ts-title">🏟️ TennisStats — Dashboard</div>
-      <div class="ts-sub">UI épica · Marcador live · Tendencias · Historial privado</div>
+      <div class="ts-sub">UI épica (móvil) · Marcador live · Tendencias · Historial privado</div>
       <div class="ts-chiprow">
         <div class="ts-chip"><span class="ts-dot"></span> {user_display}</div>
         <div class="ts-chip {wp_cls}">
@@ -1442,6 +1522,12 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+# (Cambio 10) Mostrar "What's New" y/o Tour (solo UX, no toca funciones)
+if st.session_state.get("_show_whats_new", False):
+    whats_new_block()
+if st.session_state.get("_tour_open", False):
+    tour_block()
 
 top1, top2 = st.columns(2, gap="small")
 with top1:
@@ -1930,4 +2016,5 @@ else:
                 st.components.v1.html(html, height=680, scrolling=False)
     st.markdown("</div>", unsafe_allow_html=True)
 
+# close ui wrapper
 st.markdown("</div>", unsafe_allow_html=True)
