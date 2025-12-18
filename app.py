@@ -1,18 +1,32 @@
-import os, re, json, base64, secrets, hashlib, urllib.request, xml.etree.ElementTree as ET
+import os
+import re
+import json
+import base64
+import secrets
+import hashlib
+import urllib.request
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from dataclasses import dataclass
 from copy import deepcopy
 from datetime import datetime
 from functools import lru_cache
+
 import streamlit as st
 
+
 # ==========================================================
-# CONFIG (NO FUNCTIONAL CHANGE)
+# CONFIG + CSS (VARIANTE DISEÑO: "NEON GLASS / PRO HUD")
+#  - MISMAS FUNCIONES / MISMA LÓGICA
 # ==========================================================
 st.set_page_config(page_title="TennisStats", page_icon="🎾", layout="centered")
 
 
 def _read_gif_data_uri():
+    """
+    Busca primero el GIF definitivo (tennis_ball_slowmo.gif).
+    Fallback: tennis_bg.gif (por compatibilidad).
+    """
     candidates = [
         Path("assets/tennis_ball_slowmo.gif"),
         Path("assets/tennis_bg.gif"),
@@ -22,7 +36,8 @@ def _read_gif_data_uri():
     for p in candidates:
         try:
             if p.exists() and p.is_file():
-                b64 = base64.b64encode(p.read_bytes()).decode("utf-8")
+                b = p.read_bytes()
+                b64 = base64.b64encode(b).decode("utf-8")
                 return f"data:image/gif;base64,{b64}"
         except Exception:
             continue
@@ -31,23 +46,20 @@ def _read_gif_data_uri():
 
 BG_GIF = _read_gif_data_uri()
 
-# ==========================================================
-# NEW DESIGN (PRO DARK MINIMAL + GLASS) — CSS ONLY
-# Keeps all app logic intact.
-# ==========================================================
 BG_LAYER = ""
 if BG_GIF:
     BG_LAYER = f"""
+/* Tennis GIF background layer (más sutil, más "premium") */
 [data-testid="stAppViewContainer"]::after{{
   content:"";
   position: fixed;
-  inset: -12%;
+  inset: -10%;
   background-image: url("{BG_GIF}");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   opacity: 0.10;
-  filter: blur(2px) saturate(1.10) contrast(1.06);
+  filter: saturate(1.05) contrast(1.08) blur(1px);
   pointer-events: none;
   z-index: 0;
 }}
@@ -56,22 +68,26 @@ if BG_GIF:
 PRO_CSS = f"""
 <style>
 :root{{
-  --bg:#05070d;
-  --bg2:#090f1f;
-  --card: rgba(255,255,255,0.08);
-  --card2: rgba(255,255,255,0.10);
-  --text: rgba(255,255,255,0.96);
-  --muted: rgba(255,255,255,0.70);
+  --bg:#05060b;
+  --bg2:#0a1020;
+  --panel: rgba(255,255,255,0.06);
+  --panel2: rgba(255,255,255,0.08);
+  --text: rgba(255,255,255,0.95);
+  --muted: rgba(255,255,255,0.72);
   --muted2: rgba(255,255,255,0.60);
   --stroke: rgba(255,255,255,0.14);
   --stroke2: rgba(255,255,255,0.10);
-  --accent:#22c55e;
-  --accent2:#60a5fa;
-  --warn:#fbbf24;
-  --danger:#fb7185;
+
+  /* Acentos "neón" (sin cambiar funciones) */
+  --a1:#22c55e;      /* green */
+  --a2:#60a5fa;      /* blue  */
+  --a3:#a78bfa;      /* purple */
+  --a4:#fb7185;      /* pink */
+  --a5:#fbbf24;      /* amber */
+
   --radius: 18px;
-  --radius2: 22px;
-  --shadow: 0 22px 60px rgba(0,0,0,.50);
+  --radius2: 24px;
+  --shadow: 0 24px 70px rgba(0,0,0,.55);
   --shadow2: 0 14px 34px rgba(0,0,0,.40);
   --focus: 0 0 0 3px rgba(96,165,250,.22);
 }}
@@ -80,95 +96,109 @@ PRO_CSS = f"""
 html, body, [data-testid="stAppViewContainer"]{{
   color: var(--text);
   background:
-    radial-gradient(880px 520px at 16% -6%, rgba(34,197,94,.16), transparent 60%),
-    radial-gradient(880px 520px at 84% -6%, rgba(96,165,250,.16), transparent 60%),
-    radial-gradient(900px 560px at 50% 120%, rgba(251,191,36,.10), transparent 60%),
+    radial-gradient(900px 520px at 12% -10%, rgba(34,197,94,.18), transparent 62%),
+    radial-gradient(900px 520px at 88% -10%, rgba(96,165,250,.18), transparent 62%),
+    radial-gradient(800px 520px at 50% 110%, rgba(167,139,250,.14), transparent 62%),
     linear-gradient(180deg, var(--bg), var(--bg2));
+  overflow-x: hidden;
 }}
 
+/* Animated aurora overlay (sutil) */
+@keyframes aurora {{
+  0% {{ transform: translate3d(-2%, -2%, 0) rotate(0deg); opacity:.55; }}
+  50% {{ transform: translate3d(2%, 2%, 0) rotate(6deg); opacity:.72; }}
+  100% {{ transform: translate3d(-2%, -2%, 0) rotate(0deg); opacity:.55; }}
+}}
 [data-testid="stAppViewContainer"]::before{{
   content:"";
   position: fixed;
-  inset: 0;
+  inset: -20%;
   pointer-events:none;
-  opacity: .18;
-  background:
-    linear-gradient(90deg, rgba(255,255,255,.032) 1px, transparent 1px) 0 0 / 160px 160px,
-    linear-gradient(0deg, rgba(255,255,255,.022) 1px, transparent 1px) 0 0 / 160px 160px;
-  mask-image: radial-gradient(circle at 50% 0%, black 16%, transparent 62%);
   z-index: 0;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(34,197,94,.16), transparent 42%),
+    radial-gradient(circle at 80% 12%, rgba(96,165,250,.16), transparent 45%),
+    radial-gradient(circle at 55% 88%, rgba(167,139,250,.14), transparent 48%),
+    radial-gradient(circle at 35% 65%, rgba(251,113,133,.10), transparent 42%);
+  filter: blur(26px);
+  animation: aurora 9s ease-in-out infinite;
+  opacity: .65;
 }}
 
 {BG_LAYER}
 
-/* Keep content above background layers */
+/* Keep content above overlays */
 .block-container, header, section, footer {{ position: relative; z-index: 1; }}
 
 .block-container{{
-  max-width: 1020px;
-  padding-top: 0.55rem;
-  padding-bottom: 1.15rem;
+  padding-top: 0.75rem;
+  padding-bottom: 1.25rem;
+  max-width: 980px;
 }}
+
 header[data-testid="stHeader"]{{ height: 0.35rem; background: transparent; }}
-div[data-testid="stVerticalBlock"] > div {{ gap: 0.60rem; }}
+div[data-testid="stVerticalBlock"] > div {{ gap: 0.55rem; }}
 
 .stCaption, [data-testid="stCaptionContainer"]{{ color: var(--muted2) !important; }}
-
-.small-note{{ color: var(--muted); font-size: .94rem; line-height: 1.25rem; }}
+.small-note{{ color: var(--muted); font-size: .92rem; line-height: 1.25rem; }}
 .mono{{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }}
 
-/* Premium sticky header (visual only) */
-.tsTop{{
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  padding: 8px 0 10px 0;
+hr, [data-testid="stDivider"]{{
+  border-color: var(--stroke2) !important;
+  margin: 0.35rem 0;
 }}
-.tsTopInner{{
-  border: 1px solid rgba(255,255,255,0.14);
-  border-radius: 26px;
-  overflow: hidden;
-  box-shadow: 0 24px 70px rgba(0,0,0,.55);
-  backdrop-filter: blur(12px);
-  background:
-    radial-gradient(900px 240px at 15% 0%, rgba(34,197,94,.16), transparent 55%),
-    radial-gradient(900px 240px at 85% 0%, rgba(96,165,250,.16), transparent 55%),
-    rgba(0,0,0,.22);
-}}
-.tsTopPad{{ padding: 10px 12px; }}
-.tsRow{{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }}
-.badge{{
-  display:inline-flex; align-items:center; gap:8px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(0,0,0,.18);
-  font-weight: 980; font-size: .88rem;
-}}
-.dot{{ width:10px; height:10px; border-radius:999px; background: var(--accent); box-shadow: 0 0 0 3px rgba(34,197,94,.16); }}
 
-/* Cards */
+/* ===== Cards (HUD glass) ===== */
 .ts-card{{
-  border: 1px solid rgba(255,255,255,0.14);
-  border-radius: 24px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.06));
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius2);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.05));
   box-shadow: var(--shadow2);
   padding: 12px 12px;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px);
+  position: relative;
+  overflow: hidden;
 }}
+.ts-card::after{{
+  content:"";
+  position:absolute;
+  inset:-2px;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(96,165,250,.12), transparent 38%),
+    radial-gradient(circle at 90% 10%, rgba(34,197,94,.10), transparent 40%),
+    radial-gradient(circle at 50% 100%, rgba(167,139,250,.10), transparent 44%);
+  opacity: .85;
+  pointer-events:none;
+}}
+.ts-card > *{{ position: relative; z-index: 1; }}
+
 .ts-card.tight{{ padding: 10px 10px; }}
 .ts-card.pad{{ padding: 14px 14px; }}
-.ts-title{{ font-size: 1.18rem; font-weight: 1000; letter-spacing: .2px; margin: 0; }}
-.ts-sub{{ margin: 6px 0 0 0; color: var(--muted); font-weight: 750; font-size: .95rem; }}
 
-hr, [data-testid="stDivider"]{{ border-color: rgba(255,255,255,.10)!important; margin:.35rem 0; }}
+.ts-row{{ display:flex; align-items:center; justify-content:space-between; gap:12px; }}
+.ts-title{{ font-size: 1.10rem; font-weight: 1000; letter-spacing: .3px; margin: 0; }}
+.ts-sub{{ margin: 4px 0 0 0; color: var(--muted); font-weight: 750; font-size: .92rem; }}
+.ts-chiprow{{ margin-top: 10px; display:flex; flex-wrap:wrap; gap: 8px; }}
+
+.ts-chip{{
+  display:inline-flex; align-items:center; gap: 8px;
+  padding: 7px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--stroke2);
+  background: rgba(0,0,0,0.18);
+  font-weight: 950; font-size: .88rem; color: var(--text);
+}}
+.ts-dot{{ width: 9px; height: 9px; border-radius: 999px; background: var(--a1);
+  box-shadow: 0 0 0 3px rgba(34,197,94,.18);
+}}
 
 /* Inputs */
 div[data-baseweb="select"] > div,
 div[data-baseweb="input"] > div,
 div[data-baseweb="textarea"] > div{{
   background: rgba(0,0,0,0.22) !important;
-  border: 1px solid rgba(255,255,255,0.14) !important;
+  border: 1px solid var(--stroke) !important;
   border-radius: 14px !important;
   box-shadow: 0 10px 18px rgba(0,0,0,.22);
 }}
@@ -186,72 +216,106 @@ div[data-baseweb="textarea"] > div:focus-within{{
   border-color: rgba(96,165,250,.35) !important;
 }}
 
-/* Buttons (primary style) */
+/* Buttons (más "neón", sin tocar lógica) */
 .stButton>button{{
   width: 100%;
-  padding: 0.72rem 0.95rem;
-  border-radius: 18px;
+  padding: 0.64rem 0.95rem;
+  border-radius: 16px;
   border: 1px solid rgba(255,255,255,0.14);
   background:
-    radial-gradient(900px 120px at 20% 0%, rgba(34,197,94,.16), transparent 60%),
-    radial-gradient(900px 120px at 80% 0%, rgba(96,165,250,.16), transparent 60%),
-    linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06));
+    linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.05));
   color: var(--text);
-  font-weight: 1000;
-  box-shadow: 0 16px 30px rgba(0,0,0,.32);
+  font-weight: 980;
+  box-shadow: 0 14px 24px rgba(0,0,0,.30);
   transition: transform .06s ease, box-shadow .12s ease, border-color .12s ease, filter .12s ease;
+  position: relative;
+  overflow: hidden;
+}}
+.stButton>button::after{{
+  content:"";
+  position:absolute; inset:-2px;
+  background: radial-gradient(circle at 30% 10%, rgba(96,165,250,.18), transparent 40%);
+  opacity:.65;
+  pointer-events:none;
 }}
 .stButton>button:hover{{
-  border-color: rgba(96,165,250,.28);
-  box-shadow: 0 20px 40px rgba(0,0,0,.38);
+  border-color: rgba(96,165,250,.34);
+  box-shadow: 0 18px 34px rgba(0,0,0,.38);
 }}
 .stButton>button:active{{ transform: translateY(1px) scale(0.985); filter: brightness(1.05); }}
-.stButton>button:focus{{ outline: none !important; box-shadow: 0 16px 30px rgba(0,0,0,.32), var(--focus) !important; }}
+.stButton>button:focus{{ outline: none !important; box-shadow: 0 14px 24px rgba(0,0,0,.30), var(--focus) !important; }}
 
 /* Download button */
 [data-testid="stDownloadButton"] > button{{
-  border-radius: 18px !important;
-  border: 1px solid rgba(96,165,250,.30) !important;
-  background: linear-gradient(180deg, rgba(96,165,250,.20), rgba(255,255,255,0.06)) !important;
-  font-weight: 1000 !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(34,197,94,.28) !important;
+  background: linear-gradient(180deg, rgba(34,197,94,.16), rgba(255,255,255,0.06)) !important;
+  color: var(--text) !important;
+  font-weight: 980 !important;
 }}
 
-/* Expanders / Tabs */
+/* Expanders */
 [data-testid="stExpander"]{{
-  border: 1px solid rgba(255,255,255,0.14) !important;
-  border-radius: 24px !important;
-  background: rgba(0,0,0,0.14) !important;
+  border: 1px solid var(--stroke) !important;
+  border-radius: var(--radius2) !important;
+  background: rgba(0,0,0,0.16) !important;
   box-shadow: 0 18px 40px rgba(0,0,0,.34);
   overflow: hidden;
 }}
 [data-testid="stExpander"] summary{{ font-weight: 980 !important; }}
+
+/* Tabs */
 [data-baseweb="tab-list"]{{
-  background: rgba(0,0,0,0.16);
-  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(0,0,0,0.18);
+  border: 1px solid var(--stroke);
   border-radius: 16px;
   padding: 6px;
   gap: 6px;
-  box-shadow: 0 12px 22px rgba(0,0,0,.24);
+  box-shadow: 0 12px 22px rgba(0,0,0,.25);
 }}
-button[role="tab"]{{ border-radius: 12px !important; font-weight: 980 !important; color: var(--muted) !important; }}
+button[role="tab"]{{
+  border-radius: 12px !important;
+  font-weight: 980 !important;
+  color: var(--muted) !important;
+}}
 button[role="tab"][aria-selected="true"]{{
-  background: rgba(96,165,250,.16) !important;
-  border: 1px solid rgba(96,165,250,.22) !important;
+  background: linear-gradient(180deg, rgba(96,165,250,.20), rgba(0,0,0,.16)) !important;
+  color: var(--text) !important;
+  border: 1px solid rgba(96,165,250,.28) !important;
+}}
+
+/* Alerts / uploader */
+[data-testid="stAlert"]{{
+  border-radius: 16px !important;
+  border: 1px solid var(--stroke) !important;
+  background: rgba(0,0,0,0.18) !important;
+  box-shadow: 0 12px 22px rgba(0,0,0,.25);
+}}
+section[data-testid="stFileUploaderDropzone"]{{
+  border-radius: 16px !important;
+  border: 1px dashed rgba(255,255,255,0.22) !important;
+  background: rgba(0,0,0,0.14) !important;
+  box-shadow: 0 12px 22px rgba(0,0,0,.25);
+}}
+
+/* Segmented control nav (más flotante, más pro) */
+div[data-testid="stSegmentedControl"] > div{{
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,255,255,0.14) !important;
+  background: rgba(0,0,0,0.26) !important;
+  box-shadow: 0 14px 28px rgba(0,0,0,.38) !important;
+  padding: 6px !important;
+  backdrop-filter: blur(12px);
+}}
+div[data-testid="stSegmentedControl"] label{{
+  font-weight: 950 !important;
+  color: rgba(255,255,255,0.70) !important;
+}}
+div[data-testid="stSegmentedControl"] label[data-selected="true"]{{
   color: var(--text) !important;
 }}
 
-/* Segmented control nav */
-div[data-testid="stSegmentedControl"] > div{{
-  border-radius: 20px !important;
-  border: 1px solid rgba(255,255,255,0.14) !important;
-  background: rgba(0,0,0,0.18) !important;
-  box-shadow: 0 12px 22px rgba(0,0,0,.28) !important;
-  padding: 6px !important;
-}}
-div[data-testid="stSegmentedControl"] label{{ font-weight: 950 !important; color: var(--muted) !important; }}
-div[data-testid="stSegmentedControl"] label[data-selected="true"]{{ color: var(--text) !important; }}
-
-/* Rings */
+/* Ring animation (igual que antes) */
 .ring-wrap{{ display:flex; gap: 12px; align-items:center; }}
 .ringSvg{{ width: 64px; height: 64px; filter: drop-shadow(0 14px 24px rgba(0,0,0,.30)); }}
 .ringTrack{{ stroke: rgba(255,255,255,.14); stroke-width: 10; }}
@@ -259,50 +323,111 @@ div[data-testid="stSegmentedControl"] label[data-selected="true"]{{ color: var(-
   transform: rotate(-90deg); transform-origin: 50% 50%;
   stroke-dasharray: var(--circ);
   stroke-dashoffset: calc(var(--circ) * (1 - var(--p)));
+  animation: ringFill .55s cubic-bezier(.2,.9,.2,1) both;
 }}
-.ringCenter{{ fill: rgba(0,0,0,0.18); stroke: rgba(255,255,255,0.10); stroke-width: 1; }}
+@keyframes ringFill {{
+  from {{ stroke-dashoffset: var(--circ); }}
+  to   {{ stroke-dashoffset: calc(var(--circ) * (1 - var(--p))); }}
+}}
+.ringCenter{{ fill: rgba(0,0,0,0.25); stroke: rgba(255,255,255,0.10); stroke-width: 1; }}
 .ring-val{{ font-weight: 1000; fill: rgba(255,255,255,0.95); font-size: 12px; }}
 .ring-txt .t1{{ font-weight: 1000; line-height: 1.05rem; }}
 .ring-txt .t2{{ color: var(--muted); font-weight: 800; font-size: .88rem; margin-top: 2px; }}
 
-/* Last points */
+/* Score pills */
+.pills{{ display:flex; gap: 8px; flex-wrap:wrap; margin-top:8px; }}
+.pill{{
+  display:inline-flex; align-items:center; gap:8px;
+  padding: 7px 10px; border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.20);
+  font-weight: 950; font-size:.90rem;
+}}
+.pill b{{ font-weight:1000; }}
+
+/* Last points timeline */
 .lp{{ display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }}
-.dotP{{
+.dot{{
   width: 14px; height: 14px; border-radius: 999px;
   border: 1px solid rgba(255,255,255,0.18);
   box-shadow: 0 10px 18px rgba(0,0,0,.26);
 }}
-.dotP.win{{ background: rgba(34,197,94,.96); }}
-.dotP.lose{{ background: rgba(251,113,133,.92); }}
-.dotP.pressure{{ outline: 3px solid rgba(251,191,36,.26); }}
+.dot.win{{ background: rgba(34,197,94,.96); }}
+.dot.lose{{ background: rgba(251,113,133,.92); }}
+.dot.pressure{{ outline: 3px solid rgba(251,191,36,.26); }}
 
+/* Charts container */
+[data-testid="stVegaLiteChart"] {{
+  background: rgba(0,0,0,0.10) !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(255,255,255,0.10) !important;
+}}
+
+/* WinProb pulse */
+.pulseWinProb{{ animation: wpPulse .55s ease-in-out both; }}
+@keyframes wpPulse {{
+  0% {{ transform: scale(1); }}
+  35% {{ transform: scale(1.035); }}
+  100% {{ transform: scale(1); }}
+}}
+
+/* UI modes */
+.ui-pista .ts-title{{ font-size: 1.22rem; }}
+.ui-pista .ts-sub{{ font-size: .98rem; }}
+.ui-pista .stButton>button{{ padding: 0.92rem 1.06rem; border-radius: 18px; font-size: 1.02rem; }}
+.ui-pista .small-note{{ font-size: .98rem; }}
+.ui-pista .ts-card{{ padding: 12px 12px; }}
+
+.ui-casa .ts-card{{ padding: 12px 12px; }}
+.ui-casa .small-note{{ font-size: .90rem; }}
+.ui-casa .ts-title{{ font-size: 1.08rem; }}
+
+/* Hero (login) */
 .hero{{
   border: 1px solid rgba(255,255,255,0.14);
   border-radius: 26px;
   overflow: hidden;
-  box-shadow: 0 22px 60px rgba(0,0,0,.52);
+  box-shadow: var(--shadow);
   position: relative;
+}}
+.heroBg{{
+  position:absolute; inset:-12%;
+  background-image: url("{BG_GIF}");
+  background-size: cover;
+  background-position: center;
+  filter: blur(14px) saturate(1.06) contrast(1.06);
+  opacity: .62;
 }}
 .heroOverlay{{
   position:absolute; inset:0;
   background:
-    radial-gradient(900px 360px at 18% 12%, rgba(34,197,94,.20), transparent 60%),
-    radial-gradient(900px 360px at 86% 18%, rgba(96,165,250,.20), transparent 62%),
-    linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.56));
+    radial-gradient(900px 380px at 18% 10%, rgba(96,165,250,.26), transparent 60%),
+    radial-gradient(900px 420px at 86% 18%, rgba(34,197,94,.22), transparent 62%),
+    linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.62));
 }}
 .heroInner{{ position:relative; padding: 18px 16px 16px 16px; }}
-.heroClaim{{ font-size: 1.55rem; font-weight: 1100; letter-spacing: .3px; margin: 0; line-height: 1.1; }}
-.heroSub{{ margin-top: 8px; color: rgba(255,255,255,.86); font-weight: 850; }}
-.heroName{{ margin-top: 10px; display:inline-flex; align-items:center; gap:8px;
-  padding: 8px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,.16);
-  background: rgba(0,0,0,.20); font-weight: 1000;
+.heroClaim{{ font-size: 1.55rem; font-weight: 1100; letter-spacing: .4px; margin: 0; line-height: 1.1; }}
+.heroSub{{ margin-top: 8px; color: rgba(255,255,255,.84); font-weight: 850; }}
+.heroName{{
+  margin-top: 10px;
+  display:inline-flex; align-items:center; gap:8px;
+  padding: 8px 12px; border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.16);
+  background: rgba(0,0,0,.22);
+  font-weight: 1000;
+}}
+.heroShine{{
+  position:absolute; inset:0;
+  background: radial-gradient(circle at 22% 10%, rgba(255,255,255,.16), transparent 35%);
+  pointer-events:none;
 }}
 </style>
 """
 st.markdown(PRO_CSS, unsafe_allow_html=True)
 
+
 # ==========================================================
-# STORAGE (NO CHANGE)
+# STORAGE (multi-usuario privado por fichero)
 # ==========================================================
 DATA_DIR = "data"
 USERS_FILE = os.path.join(DATA_DIR, "users.json")
@@ -373,13 +498,14 @@ def load_history_from_disk(user_key: str) -> list:
 
 def save_history_to_disk(user_key: str, matches: list) -> None:
     ensure_dirs()
+    path = history_path_for(user_key)
     payload = {"matches": matches}
-    with open(history_path_for(user_key), "w", encoding="utf-8") as f:
+    with open(path, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
 
 
 # ==========================================================
-# NEWS (NO CHANGE)
+# NOTICIAS (RSS)
 # ==========================================================
 NEWS_SOURCES = [
     ("ATP Tour", "https://www.atptour.com/en/media/rss-feed/xml-feed"),
@@ -435,17 +561,19 @@ def fetch_tennis_news(max_items: int = 15):
         except Exception:
             continue
 
-    seen, uniq = set(), []
+    seen = set()
+    uniq = []
     for it in items:
         if it["link"] in seen:
             continue
         seen.add(it["link"])
         uniq.append(it)
+
     return uniq[:max_items]
 
 
 # ==========================================================
-# TENNIS LOGIC (NO CHANGE)
+# LÓGICA TENIS (MARCADOR)
 # ==========================================================
 POINT_LABELS = {0: "0", 1: "15", 2: "30", 3: "40"}
 
@@ -477,6 +605,9 @@ def is_set_over(g_me: int, g_opp: int) -> bool:
     return False
 
 
+# ==========================================================
+# MODELO REAL: Markov (punto→juego→set→BO3)
+# ==========================================================
 def _clamp01(x: float) -> float:
     return max(0.0, min(1.0, float(x)))
 
@@ -485,10 +616,12 @@ def _clamp01(x: float) -> float:
 def _prob_game_from(p_rounded: float, a: int, b: int) -> float:
     p = max(1e-6, min(1 - 1e-6, float(p_rounded)))
     q = 1.0 - p
+
     if a >= 4 and a - b >= 2:
         return 1.0
     if b >= 4 and b - a >= 2:
         return 0.0
+
     if a >= 3 and b >= 3:
         deuce = (p * p) / (p * p + q * q)
         if a == b:
@@ -498,6 +631,7 @@ def _prob_game_from(p_rounded: float, a: int, b: int) -> float:
         if b == a + 1:
             return p * deuce + q * 0.0
         return deuce
+
     return p * _prob_game_from(p_rounded, a + 1, b) + q * _prob_game_from(p_rounded, a, b + 1)
 
 
@@ -505,10 +639,12 @@ def _prob_game_from(p_rounded: float, a: int, b: int) -> float:
 def _prob_tiebreak_from(p_rounded: float, a: int, b: int) -> float:
     p = max(1e-6, min(1 - 1e-6, float(p_rounded)))
     q = 1.0 - p
+
     if a >= 7 and a - b >= 2:
         return 1.0
     if b >= 7 and b - a >= 2:
         return 0.0
+
     if a >= 6 and b >= 6:
         deuce = (p * p) / (p * p + q * q)
         if a == b:
@@ -518,6 +654,7 @@ def _prob_tiebreak_from(p_rounded: float, a: int, b: int) -> float:
         if b == a + 1:
             return p * deuce + q * 0.0
         return deuce
+
     return p * _prob_tiebreak_from(p_rounded, a + 1, b) + q * _prob_tiebreak_from(p_rounded, a, b + 1)
 
 
@@ -527,6 +664,7 @@ def _prob_set_from(p_rounded: float, g_me: int, g_opp: int, pts_me: int, pts_opp
         return 1.0
     if is_set_over(g_opp, g_me):
         return 0.0
+
     if in_tb:
         return _prob_tiebreak_from(p_rounded, pts_me, pts_opp)
 
@@ -546,6 +684,7 @@ def _prob_match_bo3(p_rounded: float, sets_me: int, sets_opp: int, g_me: int, g_
         return 1.0
     if sets_opp >= 2:
         return 0.0
+
     p_set = _prob_set_from(p_rounded, g_me, g_opp, pts_me, pts_opp, in_tb)
     win_state = (p_rounded, sets_me + 1, sets_opp, 0, 0, 0, 0, False)
     lose_state = (p_rounded, sets_me, sets_opp + 1, 0, 0, 0, 0, False)
@@ -553,7 +692,7 @@ def _prob_match_bo3(p_rounded: float, sets_me: int, sets_opp: int, g_me: int, g_
 
 
 # ==========================================================
-# LIVE STATE (NO CHANGE)
+# ESTADO LIVE
 # ==========================================================
 @dataclass
 class LiveState:
@@ -605,7 +744,9 @@ class LiveMatch:
         p = self.estimate_point_win_prob()
         p_r = round(p, 3)
         st_ = self.state
-        return _prob_match_bo3(p_r, st_.sets_me, st_.sets_opp, st_.games_me, st_.games_opp, st_.pts_me, st_.pts_opp, st_.in_tiebreak)
+        return _prob_match_bo3(
+            p_r, st_.sets_me, st_.sets_opp, st_.games_me, st_.games_opp, st_.pts_me, st_.pts_opp, st_.in_tiebreak
+        )
 
     def win_prob_series(self):
         probs = []
@@ -641,13 +782,17 @@ class LiveMatch:
     def _maybe_award_set(self):
         if is_set_over(self.state.games_me, self.state.games_opp):
             self.state.sets_me += 1
-            self.state.games_me = self.state.games_opp = 0
-            self.state.pts_me = self.state.pts_opp = 0
+            self.state.games_me = 0
+            self.state.games_opp = 0
+            self.state.pts_me = 0
+            self.state.pts_opp = 0
             self.state.in_tiebreak = False
         elif is_set_over(self.state.games_opp, self.state.games_me):
             self.state.sets_opp += 1
-            self.state.games_me = self.state.games_opp = 0
-            self.state.pts_me = self.state.pts_opp = 0
+            self.state.games_me = 0
+            self.state.games_opp = 0
+            self.state.pts_me = 0
+            self.state.pts_opp = 0
             self.state.in_tiebreak = False
 
     def add_point(self, result: str, meta: dict):
@@ -655,7 +800,10 @@ class LiveMatch:
         before = deepcopy(self.state)
         set_idx = before.sets_me + before.sets_opp + 1
         is_pressure = bool(before.in_tiebreak or (before.pts_me >= 3 and before.pts_opp >= 3))
-        self.points.append({"result": result, **meta, "surface": self.surface, "before": before.__dict__, "set_idx": set_idx, "pressure": is_pressure})
+
+        self.points.append(
+            {"result": result, **meta, "surface": self.surface, "before": before.__dict__, "set_idx": set_idx, "pressure": is_pressure}
+        )
 
         if result == "win":
             self.state.pts_me += 1
@@ -680,7 +828,10 @@ class LiveMatch:
 
     def add_game_manual(self, who: str):
         self.snapshot()
-        self._award_game_to_me() if who == "me" else self._award_game_to_opp()
+        if who == "me":
+            self._award_game_to_me()
+        else:
+            self._award_game_to_opp()
 
     def add_set_manual(self, who: str):
         self.snapshot()
@@ -688,21 +839,26 @@ class LiveMatch:
             self.state.sets_me += 1
         else:
             self.state.sets_opp += 1
-        self.state.games_me = self.state.games_opp = 0
-        self.state.pts_me = self.state.pts_opp = 0
+        self.state.games_me = 0
+        self.state.games_opp = 0
+        self.state.pts_me = 0
+        self.state.pts_opp = 0
         self.state.in_tiebreak = False
 
     def match_summary(self):
         total = len(self.points)
         won = sum(1 for p in self.points if p["result"] == "win")
         pct = (won / total * 100.0) if total else 0.0
+
         finishes = {"winner": 0, "unforced": 0, "forced": 0, "ace": 0, "double_fault": 0, "opp_error": 0, "opp_winner": 0}
         pressure_total = sum(1 for p in self.points if p.get("pressure"))
         pressure_won = sum(1 for p in self.points if p.get("pressure") and p.get("result") == "win")
+
         for p in self.points:
             f = p.get("finish")
             if f in finishes:
                 finishes[f] += 1
+
         return {
             "points_total": total,
             "points_won": won,
@@ -715,7 +871,7 @@ class LiveMatch:
 
 
 # ==========================================================
-# HISTORIAL (NO CHANGE)
+# HISTORIAL
 # ==========================================================
 class MatchHistory:
     def __init__(self):
@@ -754,8 +910,10 @@ class MatchHistory:
 
     def aggregate(self, n=None, surface=None):
         matches = self.filtered_matches(n=n, surface=surface)
+
         total_m = len(matches)
         win_m = sum(1 for m in matches if m.get("won_match"))
+
         sets_w = sum(int(m.get("sets_w", 0)) for m in matches)
         sets_l = sum(int(m.get("sets_l", 0)) for m in matches)
         games_w = sum(int(m.get("games_w", 0)) for m in matches)
@@ -802,7 +960,7 @@ class MatchHistory:
 
 
 # ==========================================================
-# Resumen entrenador (NO CHANGE)
+# Resumen tipo entrenador (original, se mantiene)
 # ==========================================================
 def coach_summary_from_match(m: dict) -> str:
     won = bool(m.get("won_match"))
@@ -824,7 +982,8 @@ def coach_summary_from_match(m: dict) -> str:
     df = int(fin.get("double_fault", 0) or 0)
     opp_err = int(fin.get("opp_error", 0) or 0)
 
-    strengths, focus = [], []
+    strengths = []
+    focus = []
 
     if pts_pct >= 55:
         strengths.append(f"dominaste el intercambio de puntos ({pts_pct:.0f}%).")
@@ -859,11 +1018,10 @@ def coach_summary_from_match(m: dict) -> str:
     if opp_err >= 5 and winners < 3:
         strengths.append("sacaste puntos provocando error del rival: buena consistencia.")
 
-    plan = [
-        "1) Prioriza consistencia (altura/profundidad) y acelera solo con bola clara.",
-        "2) En puntos importantes: rutina corta (respira, objetivo simple, juega al %).",
-        "3) Saque: 1º con dirección; 2º con más efecto/altura, mismo ritual siempre.",
-    ]
+    plan = []
+    plan.append("1) Prioriza consistencia (altura/profundidad) y acelera solo con bola clara.")
+    plan.append("2) En puntos importantes: rutina corta (respira, objetivo simple, juega al %).")
+    plan.append("3) Saque: 1º con dirección; 2º con más efecto/altura, mismo ritual siempre.")
 
     s_txt = " ".join(strengths) if strengths else "buen partido en líneas generales."
     f_txt = " ".join(focus) if focus else "pocos puntos débiles claros: sigue consolidando lo que funcionó."
@@ -881,7 +1039,7 @@ def coach_summary_from_match(m: dict) -> str:
 
 
 # ==========================================================
-# Resumen IA (NO CHANGE)
+# Resumen IA (usa OpenAI REST si hay OPENAI_API_KEY; si no, no rompe)
 # ==========================================================
 def ai_coach_summary_from_match(m: dict) -> str:
     api_key = None
@@ -892,11 +1050,13 @@ def ai_coach_summary_from_match(m: dict) -> str:
     api_key = api_key or os.getenv("OPENAI_API_KEY")
 
     base_summary = coach_summary_from_match(m)
+
     if not api_key:
         return (
             "⚠️ **Resumen IA no disponible** (falta `OPENAI_API_KEY`).\n\n"
             "Para activarlo, añade la key en `st.secrets` o variable de entorno.\n\n"
-            "Mientras tanto, aquí tienes el resumen estándar:\n\n" + base_summary
+            "Mientras tanto, aquí tienes el resumen estándar:\n\n"
+            + base_summary
         )
 
     fin = (m.get("finishes") or {})
@@ -924,32 +1084,41 @@ def ai_coach_summary_from_match(m: dict) -> str:
             "model": "gpt-4o-mini",
             "temperature": 0.7,
             "messages": [
-                {"role": "system", "content": (
-                    "Eres un entrenador de tenis experto y motivador. "
-                    "Da un resumen claro, directo, accionable y profesional. "
-                    "Estructura: 1) Diagnóstico 2) Qué repetir 3) Qué ajustar "
-                    "4) Plan próximo partido (3 bullets) 5) Una frase final motivadora. "
-                    "NO inventes datos."
-                )},
+                {
+                    "role": "system",
+                    "content": (
+                        "Eres un entrenador de tenis experto y motivador. "
+                        "Da un resumen tipo IA: claro, directo, accionable y profesional. "
+                        "Estructura: 1) Diagnóstico 2) Qué repetir 3) Qué ajustar "
+                        "4) Plan próximo partido (3 bullets) 5) Una frase final motivadora. "
+                        "NO inventes datos: usa solo los stats proporcionados."
+                    ),
+                },
                 {"role": "user", "content": f"Stats del partido:\n{json.dumps(payload, ensure_ascii=False, indent=2)}"},
             ],
         }
         data = json.dumps(req_payload).encode("utf-8")
         req = urllib.request.Request(
-            url, data=data,
+            url,
+            data=data,
             headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
             method="POST",
         )
         with urllib.request.urlopen(req, timeout=20) as resp:
-            obj = json.loads(resp.read().decode("utf-8"))
+            raw = resp.read().decode("utf-8")
+        obj = json.loads(raw)
         txt = obj["choices"][0]["message"]["content"].strip()
         return "🤖 **Resumen IA (coach)**\n\n" + txt
     except Exception as e:
-        return f"⚠️ **No se pudo generar el resumen IA**\n\nDetalle: `{e}`\n\nResumen estándar:\n\n{base_summary}"
+        return (
+            "⚠️ **No se pudo generar el resumen IA** (error de conexión o API).\n\n"
+            f"Detalle: `{e}`\n\n"
+            "Resumen estándar:\n\n" + base_summary
+        )
 
 
 # ==========================================================
-# SESSION STATE INIT (NO CHANGE)
+# SESSION STATE INIT
 # ==========================================================
 def ss_init():
     if "live" not in st.session_state:
@@ -966,6 +1135,8 @@ def ss_init():
         st.session_state.auth_key = None
     if "authed" not in st.session_state:
         st.session_state.authed = False
+    if "ui_mode" not in st.session_state:
+        st.session_state.ui_mode = "Pista"
     if "_last_p_match" not in st.session_state:
         st.session_state._last_p_match = None
 
@@ -993,9 +1164,9 @@ def title_h(txt: str):
 
 
 # ==========================================================
-# VISUAL HELPERS (NO LOGIC CHANGE)
+# VISUAL HELPERS (NO FUNCTIONAL CHANGES)
 # ==========================================================
-def ring(label: str, value: float, sub: str = "", color: str = "var(--accent)"):
+def ring(label: str, value: float, sub: str = "", color: str = "var(--a1)"):
     v = 0.0 if value is None else float(value)
     v = max(0.0, min(100.0, v))
     p = v / 100.0
@@ -1016,6 +1187,18 @@ def ring(label: str, value: float, sub: str = "", color: str = "var(--accent)"):
     st.markdown(f"<div class='ts-card tight'>{html}</div>", unsafe_allow_html=True)
 
 
+def score_pills(sets_me, sets_opp, games_me, games_opp, pts_label, surface):
+    html = f"""
+    <div class="pills">
+      <div class="pill">🧱 <b>{surface}</b></div>
+      <div class="pill">🎾 Sets <b>{sets_me}-{sets_opp}</b></div>
+      <div class="pill">🧾 Juegos <b>{games_me}-{games_opp}</b></div>
+      <div class="pill">🔢 Puntos <b>{pts_label}</b></div>
+    </div>
+    """
+    st.markdown(html, unsafe_allow_html=True)
+
+
 def last_points_timeline(points, n=18):
     arr = points[-n:] if points else []
     dots = []
@@ -1023,7 +1206,7 @@ def last_points_timeline(points, n=18):
         cls = "win" if p.get("result") == "win" else "lose"
         if p.get("pressure"):
             cls += " pressure"
-        dots.append(f"<span class='dotP {cls}' title='{p.get('result','')}'></span>")
+        dots.append(f"<span class='dot {cls}' title='{p.get('result','')}'></span>")
     html = f"""
     <div style="font-weight:1000;">Últimos puntos</div>
     <div class="small-note">Verde=ganado · Rosa=perdido · Borde=presión</div>
@@ -1032,18 +1215,80 @@ def last_points_timeline(points, n=18):
     st.markdown(f"<div class='ts-card'>{html}</div>", unsafe_allow_html=True)
 
 
+def court_svg(surface: str):
+    surf_color = {
+        "Tierra batida": "#f97316",
+        "Pista rápida": "#60a5fa",
+        "Hierba": "#22c55e",
+        "Indoor": "#a78bfa",
+    }.get(surface, "#60a5fa")
+    html = f"""
+    <div class="ts-row">
+      <div style="font-weight:1000;">Pista</div>
+      <div class="small-note">Decorativa</div>
+    </div>
+    <svg viewBox="0 0 400 210" width="100%" height="150" style="margin-top:8px; border-radius:16px; overflow:hidden;">
+      <defs>
+        <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="{surf_color}" stop-opacity="0.92"/>
+          <stop offset="1" stop-color="{surf_color}" stop-opacity="0.55"/>
+        </linearGradient>
+        <pattern id="grain" width="6" height="6" patternUnits="userSpaceOnUse">
+          <circle cx="1" cy="2" r="0.7" fill="rgba(255,255,255,0.10)"/>
+          <circle cx="4" cy="5" r="0.7" fill="rgba(0,0,0,0.18)"/>
+        </pattern>
+        <radialGradient id="shine" cx="30%" cy="20%" r="80%">
+          <stop offset="0" stop-color="rgba(255,255,255,0.18)"/>
+          <stop offset="1" stop-color="rgba(255,255,255,0.00)"/>
+        </radialGradient>
+      </defs>
+      <rect x="0" y="0" width="400" height="210" fill="url(#g)"/>
+      <rect x="0" y="0" width="400" height="210" fill="url(#grain)" opacity="0.60"/>
+      <rect x="0" y="0" width="400" height="210" fill="url(#shine)" opacity="0.85"/>
+      <rect x="20" y="15" width="360" height="180" fill="none" stroke="rgba(255,255,255,0.86)" stroke-width="3"/>
+      <line x1="200" y1="15" x2="200" y2="195" stroke="rgba(255,255,255,0.78)" stroke-width="3"/>
+      <rect x="60" y="45" width="280" height="120" fill="none" stroke="rgba(255,255,255,0.78)" stroke-width="3"/>
+      <line x1="60" y1="105" x2="340" y2="105" stroke="rgba(255,255,255,0.78)" stroke-width="3"/>
+      <circle cx="200" cy="105" r="6" fill="rgba(255,255,255,0.85)"/>
+    </svg>
+    """
+    st.markdown(f"<div class='ts-card'>{html}</div>", unsafe_allow_html=True)
+
+
+def icon_svg(kind: str):
+    icons = {
+        "bolt": """
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M13 2L3 14h8l-1 8 11-14h-8l0-6z" fill="rgba(96,165,250,.92)"/>
+        </svg>""",
+        "shield": """
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2l8 4v6c0 6-4 9-8 10-4-1-8-4-8-10V6l8-4z" fill="rgba(251,191,36,.92)"/>
+        </svg>""",
+        "trophy": """
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M7 4h10v3a5 5 0 0 1-10 0V4z" fill="rgba(34,197,94,.92)"/>
+          <path d="M9 18h6v2H9z" fill="rgba(255,255,255,.42)"/>
+          <path d="M10 13h4v5h-4z" fill="rgba(255,255,255,.28)"/>
+        </svg>""",
+    }
+    return icons.get(kind, "")
+
+
 # ==========================================================
-# AUTH UI (same behavior)
+# AUTH UI
 # ==========================================================
 def auth_block():
     name_hint = st.session_state.get("_login_user_hint", "") or "Jugador"
     st.markdown(
         f"""
         <div class="hero">
+          <div class="heroBg"></div>
           <div class="heroOverlay"></div>
+          <div class="heroShine"></div>
           <div class="heroInner">
-            <div class="heroClaim">TennisStats Pro</div>
-            <div class="heroSub">Diseño premium · Registro rápido · Historial privado</div>
+            <div class="heroClaim">Track. Compete. Improve.</div>
+            <div class="heroSub">Tu partido, punto a punto. Tu progreso, partido a partido.</div>
             <div class="heroName">🎾 {name_hint}</div>
           </div>
         </div>
@@ -1073,7 +1318,7 @@ def auth_block():
                 want = rec["hash"]
                 got = hash_pin(pin, salt)
             except Exception:
-                st.error("Error leyendo credenciales.")
+                st.error("Error leyendo credenciales. (users.json corrupto?)")
                 return
             if secrets.compare_digest(got, want):
                 st.session_state.authed = True
@@ -1103,20 +1348,22 @@ def auth_block():
             if new_pin != new_pin2:
                 st.error("Los PIN no coinciden.")
                 return
+
             salt = os.urandom(16)
-            users[key] = {
+            rec = {
                 "display": new_u.strip(),
                 "salt": _b64e(salt),
                 "hash": hash_pin(new_pin, salt),
                 "created": datetime.now().isoformat(timespec="seconds"),
             }
+            users[key] = rec
             save_users(users)
             save_history_to_disk(key, [])
-            st.success("Usuario creado ✅ Ya puedes entrar en 'Entrar'.")
+            st.success("Usuario creado ✅ Ya puedes entrar en la pestaña 'Entrar'.")
 
 
 # ==========================================================
-# MAIN: login required
+# MAIN: requiere login
 # ==========================================================
 if not st.session_state.authed:
     auth_block()
@@ -1128,12 +1375,19 @@ user_key = st.session_state.auth_key
 user_display = st.session_state.auth_user
 
 with st.sidebar:
-    st.markdown("### 🎾 TennisStats Pro")
-    st.caption("Panel")
+    st.markdown("### 🎾 TennisStats")
+    st.caption("Panel (en móvil puedes colapsarlo)")
     st.markdown(f"**👤 Usuario:** `{user_display}`")
     st.divider()
+    mode_label = "🏟️ Pista" if st.session_state.ui_mode == "Pista" else "🏠 Casa"
+    mode = st.segmented_control("Modo", options=["🏟️ Pista", "🏠 Casa"], default=mode_label, label_visibility="visible")
+    if mode:
+        st.session_state.ui_mode = "Pista" if "Pista" in mode else "Casa"
+    st.divider()
 
-# NAV (same pages)
+ui_cls = "ui-pista" if st.session_state.ui_mode == "Pista" else "ui-casa"
+st.markdown(f"<div class='{ui_cls}'>", unsafe_allow_html=True)
+
 page_map = {"🎾": "LIVE", "📈": "ANALYSIS", "📊": "STATS", "📰": "NEWS", "🧠": "PSICO"}
 labels = list(page_map.keys())
 current_label = next((k for k, v in page_map.items() if v == st.session_state.page), "🎾")
@@ -1155,26 +1409,30 @@ with st.sidebar:
         st.session_state.finish = None
         st.rerun()
 
-# TOP STICKY BAR (visual only)
-st_ = live.state
-pts_label = f"TB {st_.pts_me}-{st_.pts_opp}" if st_.in_tiebreak else game_point_label(st_.pts_me, st_.pts_opp)
 total_pts, won_pts, pct_pts = live.points_stats()
 p_point = live.estimate_point_win_prob()
 p_match = live.match_win_prob() * 100.0
 
+last_pm = st.session_state.get("_last_p_match", None)
+pulse = False
+if last_pm is not None and abs(p_match - float(last_pm)) >= 6.0:
+    pulse = True
+st.session_state._last_p_match = float(p_match)
+
+wp_cls = "pulseWinProb" if pulse else ""
 st.markdown(
     f"""
-    <div class="tsTop">
-      <div class="tsTopInner">
-        <div class="tsTopPad">
-          <div class="tsRow">
-            <div class="badge"><span class="dot"></span>{user_display}</div>
-            <div class="badge"><span class="dot" style="background:var(--accent2);box-shadow:0 0 0 3px rgba(96,165,250,.16);"></span>WinProb <b>{p_match:.1f}%</b></div>
-            <div class="badge"><span class="dot" style="background:var(--warn);box-shadow:0 0 0 3px rgba(251,191,36,.16);"></span>p(punto) <b>{p_point:.2f}</b></div>
-            <div class="badge"><span class="dot" style="background:var(--danger);box-shadow:0 0 0 3px rgba(251,113,133,.16);"></span>Puntos <b>{won_pts}/{total_pts}</b></div>
-            <div class="badge"><span class="dot" style="background:rgba(255,255,255,.38);box-shadow:none;"></span>Score <b>{st_.sets_me}-{st_.sets_opp}</b> · <b>{st_.games_me}-{st_.games_opp}</b> · <b>{pts_label}</b></div>
-          </div>
+    <div class="ts-card pad">
+      <div class="ts-title">🏟️ TennisStats — Dashboard</div>
+      <div class="ts-sub">Neon HUD · Marcador live · Tendencias · Historial privado</div>
+      <div class="ts-chiprow">
+        <div class="ts-chip"><span class="ts-dot"></span> {user_display}</div>
+        <div class="ts-chip {wp_cls}">
+          <span class="ts-dot" style="background: var(--a2); box-shadow:0 0 0 3px rgba(96,165,250,.18);"></span>
+          Win Prob <b>{p_match:.1f}%</b>
         </div>
+        <div class="ts-chip"><span class="ts-dot" style="background: var(--a5); box-shadow:0 0 0 3px rgba(251,191,36,.18);"></span> p(punto) <b>{p_point:.2f}</b></div>
+        <div class="ts-chip"><span class="ts-dot" style="background: var(--a4); box-shadow:0 0 0 3px rgba(251,113,133,.18);"></span> Puntos <b>{won_pts}/{total_pts}</b></div>
       </div>
     </div>
     """,
@@ -1183,21 +1441,25 @@ st.markdown(
 
 top1, top2 = st.columns(2, gap="small")
 with top1:
-    ring("Puntos ganados", pct_pts, f"{won_pts}/{total_pts}", "var(--accent)")
+    ring("Puntos ganados", pct_pts, f"{won_pts}/{total_pts}", "var(--a1)")
 with top2:
-    ring("Prob. victoria", p_match, "Modelo Markov", "var(--accent2)")
+    ring("Prob. victoria", p_match, "Modelo Markov", "var(--a2)")
+
 
 # ==========================================================
-# PAGE: LIVE (NO LOGIC CHANGE)
+# PAGE: LIVE
 # ==========================================================
 if st.session_state.page == "LIVE":
     title_h("LIVE MATCH")
+
+    st_ = live.state
+    pts_label = f"TB {st_.pts_me}-{st_.pts_opp}" if st_.in_tiebreak else game_point_label(st_.pts_me, st_.pts_opp)
 
     a, b = st.columns([1.05, 0.95], gap="small")
     with a:
         st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
         live.surface = st.selectbox("Superficie", SURFACES, index=SURFACES.index(live.surface))
-        small_note("Tip: en móvil, colapsa el sidebar y usa los iconos superiores.")
+        small_note("Tip: en móvil, colapsa el sidebar y usa los iconos de arriba.")
         st.markdown("</div>", unsafe_allow_html=True)
     with b:
         st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
@@ -1207,9 +1469,40 @@ if st.session_state.page == "LIVE":
             f"Juegos {st_.games_me}-{st_.games_opp} · Puntos {pts_label}</span></div>",
             unsafe_allow_html=True,
         )
+        score_pills(st_.sets_me, st_.sets_opp, st_.games_me, st_.games_opp, pts_label, live.surface)
         st.markdown("</div>", unsafe_allow_html=True)
 
-    last_points_timeline(live.points, n=18)
+    if st.session_state.ui_mode == "Casa":
+        c1, c2 = st.columns([1, 1], gap="small")
+        with c1:
+            court_svg(live.surface)
+        with c2:
+            last_points_timeline(live.points, n=18)
+
+        probs = live.win_prob_series()
+        st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
+        st.markdown(f"{icon_svg('bolt')} <b>Tendencia Win Probability</b>", unsafe_allow_html=True)
+        if len(probs) < 2:
+            small_note("Aún no hay suficientes puntos para la tendencia (mínimo 2).")
+        else:
+            st.line_chart(probs[-40:], height=170)
+        st.markdown("</div>", unsafe_allow_html=True)
+    else:
+        with st.expander("Detalles (pista / tendencia / últimos puntos)", expanded=False):
+            c1, c2 = st.columns([1, 1], gap="small")
+            with c1:
+                court_svg(live.surface)
+            with c2:
+                last_points_timeline(live.points, n=18)
+
+            probs = live.win_prob_series()
+            st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
+            st.markdown(f"{icon_svg('bolt')} <b>Tendencia Win Probability</b>", unsafe_allow_html=True)
+            if len(probs) < 2:
+                small_note("Aún no hay suficientes puntos para la tendencia (mínimo 2).")
+            else:
+                st.line_chart(probs[-40:], height=170)
+            st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
     st.subheader("Registrar punto", anchor=False)
@@ -1299,6 +1592,7 @@ if st.session_state.page == "LIVE":
                 if st.button("Guardar partido", use_container_width=True):
                     won_match = (sw > sl)
                     report = live.match_summary()
+
                     history.add({
                         "id": f"m_{datetime.now().timestamp()}",
                         "date": datetime.now().isoformat(timespec="seconds"),
@@ -1309,6 +1603,7 @@ if st.session_state.page == "LIVE":
                         **report,
                     })
                     save_history_to_disk(user_key, history.matches)
+
                     live.surface = surf_save
                     live.reset()
                     st.session_state.finish = None
@@ -1401,7 +1696,9 @@ if st.session_state.page == "LIVE":
                             m["surface"] = surface
                             m["date"] = date
                             history.matches[i] = m
+
                             save_history_to_disk(user_key, history.matches)
+
                             st.session_state._edit_open = False
                             st.session_state._edit_index = None
                             st.success("Cambios guardados ✅")
@@ -1436,14 +1733,15 @@ if st.session_state.page == "LIVE":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
+
 # ==========================================================
-# PAGE: ANALYSIS (NO CHANGE)
+# PAGE: ANALYSIS
 # ==========================================================
 elif st.session_state.page == "ANALYSIS":
     title_h("Analysis")
 
     st.markdown("<div class='ts-card pad'>", unsafe_allow_html=True)
-    st.markdown("<b>Win Probability (modelo real)</b>", unsafe_allow_html=True)
+    st.markdown(f"{icon_svg('bolt')} <b>Win Probability (modelo real)</b>", unsafe_allow_html=True)
     small_note(f"p(punto)≈{p_point:.2f} · Win Prob≈{p_match:.1f}%")
     small_note("Modelo: Markov (punto→juego→set→BO3). p(punto) se estima con tus puntos del partido.")
     st.markdown("</div>", unsafe_allow_html=True)
@@ -1458,16 +1756,18 @@ elif st.session_state.page == "ANALYSIS":
     st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("<div class='ts-card pad'>", unsafe_allow_html=True)
-    st.subheader("Puntos de presión (live)", anchor=False)
+    st.markdown(f"{icon_svg('shield')} <b>Puntos de presión (live)</b>", unsafe_allow_html=True)
+    small_note("En modo Pista, mantén esto como referencia rápida; en modo Casa lo puedes analizar con más calma.")
     pressure_total = sum(1 for p in live.points if p.get("pressure"))
     pressure_won = sum(1 for p in live.points if p.get("pressure") and p.get("result") == "win")
     pressure_pct = (pressure_won / pressure_total * 100.0) if pressure_total else 0.0
-    ring("Presión", pressure_pct, f"{pressure_won}/{pressure_total} ganados", "var(--warn)")
+    ring("Presión", pressure_pct, f"{pressure_won}/{pressure_total} ganados", "var(--a5)")
     st.write(f"**{pressure_won}/{pressure_total}** ganados ({pressure_pct:.0f}%) en deuce/tiebreak.")
     st.markdown("</div>", unsafe_allow_html=True)
 
+
 # ==========================================================
-# PAGE: STATS (NO CHANGE)
+# PAGE: STATS
 # ==========================================================
 elif st.session_state.page == "STATS":
     title_h("Stats")
@@ -1484,14 +1784,14 @@ elif st.session_state.page == "STATS":
 
     c1, c2, c3 = st.columns(3, gap="small")
     with c1:
-        ring("Partidos", agg["matches_pct"], f"{agg['matches_win']} / {agg['matches_total']}", "var(--accent)")
+        ring("Partidos", agg["matches_pct"], f"{agg['matches_win']} / {agg['matches_total']}", "var(--a1)")
     with c2:
-        ring("Sets", agg["sets_pct"], f"{agg['sets_w']} / {agg['sets_w'] + agg['sets_l']}", "var(--accent2)")
+        ring("Sets", agg["sets_pct"], f"{agg['sets_w']} / {agg['sets_w'] + agg['sets_l']}", "var(--a2)")
     with c3:
-        ring("Juegos", agg["games_pct"], f"{agg['games_w']} / {agg['games_w'] + agg['games_l']}", "var(--warn)")
+        ring("Juegos", agg["games_pct"], f"{agg['games_w']} / {agg['games_w'] + agg['games_l']}", "var(--a5)")
 
     st.markdown("<div class='ts-card pad'>", unsafe_allow_html=True)
-    st.subheader("Resumen", anchor=False)
+    st.markdown(f"{icon_svg('trophy')} <b>Resumen</b>", unsafe_allow_html=True)
     st.write(
         f"**Puntos:** {agg['points_won']}/{agg['points_total']} ({agg['points_pct']:.0f}%) · "
         f"**Presión:** {agg['pressure_won']}/{agg['pressure_total']} ({agg['pressure_pct']:.0f}%)"
@@ -1525,14 +1825,29 @@ elif st.session_state.page == "STATS":
         pct = (w / t_ * 100.0) if t_ else 0.0
         st.write(f"**{srf}:** {pct:.0f}%  ({w} de {t_})")
         chart_data[srf] = pct
+
     if any(v > 0 for v in chart_data.values()):
         st.bar_chart(chart_data, height=260)
     else:
         small_note("Aún no hay datos suficientes para mostrar el gráfico por superficies.")
     st.markdown("</div>", unsafe_allow_html=True)
 
+    if st.session_state.ui_mode == "Casa" and history.matches:
+        series = []
+        for m in history.matches[-40:]:
+            series.append(float(m.get("points_pct", 0) or 0))
+        st.markdown("<div class='ts-card pad'>", unsafe_allow_html=True)
+        st.subheader("Comparativa rápida", anchor=False)
+        small_note("Tendencia del % de puntos ganados en tus últimos partidos (hasta 40).")
+        if len(series) >= 2:
+            st.line_chart(series, height=200)
+        else:
+            small_note("Necesitas al menos 2 partidos guardados para ver tendencia.")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+
 # ==========================================================
-# PAGE: NEWS (NO CHANGE)
+# PAGE: NEWS
 # ==========================================================
 elif st.session_state.page == "NEWS":
     title_h("Noticias (tenis)")
@@ -1564,8 +1879,9 @@ elif st.session_state.page == "NEWS":
                 st.markdown(f"- **[{title}]({link})**  \n  <span class='small-note'>{src}</span>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
+
 # ==========================================================
-# PAGE: PSICO (NO CHANGE)
+# PAGE: PSICO
 # ==========================================================
 else:
     title_h("Psico")
@@ -1604,8 +1920,10 @@ else:
                     src="data:application/pdf;base64,{b64}"
                     width="100%"
                     height="650"
-                    style="border: 1px solid rgba(255,255,255,0.14); border-radius: 16px; background: rgba(0,0,0,0.14);"
+                    style="border: 1px solid rgba(255,255,255,0.14); border-radius: 14px; background: rgba(0,0,0,0.18);"
                 ></iframe>
                 """
                 st.components.v1.html(html, height=680, scrolling=False)
     st.markdown("</div>", unsafe_allow_html=True)
+
+st.markdown("</div>", unsafe_allow_html=True)
