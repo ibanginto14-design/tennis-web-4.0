@@ -16,17 +16,12 @@ import streamlit as st
 
 
 # ==========================================================
-# CONFIG + CSS (VARIANTE DISEÑO: "NEON GLASS / PRO HUD")
-#  - MISMAS FUNCIONES / MISMA LÓGICA
+# CONFIG + DESIGN (PRO / CLEAN / FAST) — NO FUNCTION CHANGES
 # ==========================================================
 st.set_page_config(page_title="TennisStats", page_icon="🎾", layout="centered")
 
 
 def _read_gif_data_uri():
-    """
-    Busca primero el GIF definitivo (tennis_ball_slowmo.gif).
-    Fallback: tennis_bg.gif (por compatibilidad).
-    """
     candidates = [
         Path("assets/tennis_ball_slowmo.gif"),
         Path("assets/tennis_bg.gif"),
@@ -36,8 +31,7 @@ def _read_gif_data_uri():
     for p in candidates:
         try:
             if p.exists() and p.is_file():
-                b = p.read_bytes()
-                b64 = base64.b64encode(b).decode("utf-8")
+                b64 = base64.b64encode(p.read_bytes()).decode("utf-8")
                 return f"data:image/gif;base64,{b64}"
         except Exception:
             continue
@@ -46,226 +40,190 @@ def _read_gif_data_uri():
 
 BG_GIF = _read_gif_data_uri()
 
-BG_LAYER = ""
-if BG_GIF:
-    BG_LAYER = f"""
-/* Tennis GIF background layer (más sutil, más "premium") */
-[data-testid="stAppViewContainer"]::after{{
+
+def build_css(bg_gif: str) -> str:
+    bg_layer = ""
+    if bg_gif:
+        bg_layer = f"""
+[data-testid="stAppViewContainer"]::after {{
   content:"";
   position: fixed;
   inset: -10%;
-  background-image: url("{BG_GIF}");
+  background-image: url("{bg_gif}");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   opacity: 0.10;
-  filter: saturate(1.05) contrast(1.08) blur(1px);
-  pointer-events: none;
+  filter: saturate(1.08) contrast(1.06);
+  pointer-events:none;
   z-index: 0;
 }}
 """
-
-PRO_CSS = f"""
+    return f"""
 <style>
-:root{{
-  --bg:#05060b;
-  --bg2:#0a1020;
-  --panel: rgba(255,255,255,0.06);
-  --panel2: rgba(255,255,255,0.08);
+:root {{
+  --bg0:#070A12;
+  --bg1:#0B1222;
+  --card: rgba(255,255,255,0.075);
+  --card2: rgba(255,255,255,0.095);
   --text: rgba(255,255,255,0.95);
-  --muted: rgba(255,255,255,0.72);
+  --muted: rgba(255,255,255,0.70);
   --muted2: rgba(255,255,255,0.60);
   --stroke: rgba(255,255,255,0.14);
   --stroke2: rgba(255,255,255,0.10);
-
-  /* Acentos "neón" (sin cambiar funciones) */
-  --a1:#22c55e;      /* green */
-  --a2:#60a5fa;      /* blue  */
-  --a3:#a78bfa;      /* purple */
-  --a4:#fb7185;      /* pink */
-  --a5:#fbbf24;      /* amber */
-
-  --radius: 18px;
-  --radius2: 24px;
-  --shadow: 0 24px 70px rgba(0,0,0,.55);
-  --shadow2: 0 14px 34px rgba(0,0,0,.40);
+  --accent:#22c55e;
+  --accent2:#60a5fa;
+  --warn:#fbbf24;
+  --danger:#fb7185;
+  --r: 18px;
+  --r2: 24px;
+  --sh: 0 18px 46px rgba(0,0,0,.45);
+  --sh2: 0 12px 28px rgba(0,0,0,.34);
   --focus: 0 0 0 3px rgba(96,165,250,.22);
 }}
 
-*{{ -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }}
-html, body, [data-testid="stAppViewContainer"]{{
+* {{
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}}
+
+html, body, [data-testid="stAppViewContainer"] {{
   color: var(--text);
   background:
-    radial-gradient(900px 520px at 12% -10%, rgba(34,197,94,.18), transparent 62%),
-    radial-gradient(900px 520px at 88% -10%, rgba(96,165,250,.18), transparent 62%),
-    radial-gradient(800px 520px at 50% 110%, rgba(167,139,250,.14), transparent 62%),
-    linear-gradient(180deg, var(--bg), var(--bg2));
-  overflow-x: hidden;
+    radial-gradient(900px 520px at 16% -8%, rgba(34,197,94,.17), transparent 60%),
+    radial-gradient(900px 520px at 84% -8%, rgba(96,165,250,.16), transparent 60%),
+    radial-gradient(1000px 600px at 50% 120%, rgba(251,191,36,.10), transparent 60%),
+    linear-gradient(180deg, var(--bg0), var(--bg1));
 }}
 
-/* Animated aurora overlay (sutil) */
-@keyframes aurora {{
-  0% {{ transform: translate3d(-2%, -2%, 0) rotate(0deg); opacity:.55; }}
-  50% {{ transform: translate3d(2%, 2%, 0) rotate(6deg); opacity:.72; }}
-  100% {{ transform: translate3d(-2%, -2%, 0) rotate(0deg); opacity:.55; }}
-}}
-[data-testid="stAppViewContainer"]::before{{
+[data-testid="stAppViewContainer"]::before {{
   content:"";
   position: fixed;
-  inset: -20%;
+  inset: 0;
   pointer-events:none;
-  z-index: 0;
+  opacity: .18;
   background:
-    radial-gradient(circle at 20% 10%, rgba(34,197,94,.16), transparent 42%),
-    radial-gradient(circle at 80% 12%, rgba(96,165,250,.16), transparent 45%),
-    radial-gradient(circle at 55% 88%, rgba(167,139,250,.14), transparent 48%),
-    radial-gradient(circle at 35% 65%, rgba(251,113,133,.10), transparent 42%);
-  filter: blur(26px);
-  animation: aurora 9s ease-in-out infinite;
-  opacity: .65;
+    linear-gradient(90deg, rgba(255,255,255,.032) 1px, transparent 1px) 0 0/160px 160px,
+    linear-gradient(0deg, rgba(255,255,255,.024) 1px, transparent 1px) 0 0/160px 160px;
+  mask-image: radial-gradient(circle at 50% 0%, black 16%, transparent 64%);
+  z-index: 0;
 }}
 
-{BG_LAYER}
+{bg_layer}
 
-/* Keep content above overlays */
 .block-container, header, section, footer {{ position: relative; z-index: 1; }}
-
-.block-container{{
-  padding-top: 0.75rem;
-  padding-bottom: 1.25rem;
+.block-container {{
+  padding-top: .70rem;
+  padding-bottom: 1.10rem;
   max-width: 980px;
 }}
 
-header[data-testid="stHeader"]{{ height: 0.35rem; background: transparent; }}
-div[data-testid="stVerticalBlock"] > div {{ gap: 0.55rem; }}
+header[data-testid="stHeader"] {{ height: .35rem; background: transparent; }}
+div[data-testid="stVerticalBlock"] > div {{ gap: .55rem; }}
+.stCaption, [data-testid="stCaptionContainer"] {{ color: var(--muted2)!important; }}
 
-.stCaption, [data-testid="stCaptionContainer"]{{ color: var(--muted2) !important; }}
-.small-note{{ color: var(--muted); font-size: .92rem; line-height: 1.25rem; }}
-.mono{{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }}
-
-hr, [data-testid="stDivider"]{{
-  border-color: var(--stroke2) !important;
-  margin: 0.35rem 0;
+.small-note {{
+  color: var(--muted);
+  font-size: .92rem;
+  line-height: 1.25rem;
+}}
+.mono {{
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
 }}
 
-/* ===== Cards (HUD glass) ===== */
-.ts-card{{
+hr, [data-testid="stDivider"] {{
+  border-color: var(--stroke2)!important;
+  margin: .35rem 0;
+}}
+
+.ts-card {{
   border: 1px solid var(--stroke);
-  border-radius: var(--radius2);
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.05));
-  box-shadow: var(--shadow2);
-  padding: 12px 12px;
-  backdrop-filter: blur(12px);
-  position: relative;
-  overflow: hidden;
+  border-radius: var(--r2);
+  background: linear-gradient(180deg, rgba(255,255,255,0.105), rgba(255,255,255,0.055));
+  box-shadow: var(--sh2);
+  padding: 12px;
+  backdrop-filter: blur(10px);
 }}
-.ts-card::after{{
-  content:"";
-  position:absolute;
-  inset:-2px;
-  background:
-    radial-gradient(circle at 10% 10%, rgba(96,165,250,.12), transparent 38%),
-    radial-gradient(circle at 90% 10%, rgba(34,197,94,.10), transparent 40%),
-    radial-gradient(circle at 50% 100%, rgba(167,139,250,.10), transparent 44%);
-  opacity: .85;
-  pointer-events:none;
-}}
-.ts-card > *{{ position: relative; z-index: 1; }}
+.ts-card.tight {{ padding: 10px; }}
+.ts-card.pad {{ padding: 14px; }}
 
-.ts-card.tight{{ padding: 10px 10px; }}
-.ts-card.pad{{ padding: 14px 14px; }}
+.ts-row {{ display:flex; align-items:center; justify-content:space-between; gap:12px; }}
+.ts-title {{ font-size: 1.10rem; font-weight: 1000; letter-spacing: .3px; margin: 0; }}
+.ts-sub {{ margin: 4px 0 0 0; color: var(--muted); font-weight: 800; font-size: .93rem; }}
 
-.ts-row{{ display:flex; align-items:center; justify-content:space-between; gap:12px; }}
-.ts-title{{ font-size: 1.10rem; font-weight: 1000; letter-spacing: .3px; margin: 0; }}
-.ts-sub{{ margin: 4px 0 0 0; color: var(--muted); font-weight: 750; font-size: .92rem; }}
-.ts-chiprow{{ margin-top: 10px; display:flex; flex-wrap:wrap; gap: 8px; }}
-
-.ts-chip{{
+.ts-chiprow {{ margin-top: 10px; display:flex; flex-wrap:wrap; gap: 8px; }}
+.ts-chip {{
   display:inline-flex; align-items:center; gap: 8px;
-  padding: 7px 11px;
+  padding: 6px 10px;
   border-radius: 999px;
   border: 1px solid var(--stroke2);
   background: rgba(0,0,0,0.18);
-  font-weight: 950; font-size: .88rem; color: var(--text);
+  font-weight: 950; font-size: .88rem;
 }}
-.ts-dot{{ width: 9px; height: 9px; border-radius: 999px; background: var(--a1);
+.ts-dot {{
+  width: 9px; height: 9px; border-radius: 999px;
+  background: var(--accent);
   box-shadow: 0 0 0 3px rgba(34,197,94,.18);
 }}
 
-/* Inputs */
 div[data-baseweb="select"] > div,
 div[data-baseweb="input"] > div,
-div[data-baseweb="textarea"] > div{{
-  background: rgba(0,0,0,0.22) !important;
-  border: 1px solid var(--stroke) !important;
-  border-radius: 14px !important;
+div[data-baseweb="textarea"] > div {{
+  background: rgba(0,0,0,0.22)!important;
+  border: 1px solid var(--stroke)!important;
+  border-radius: 14px!important;
   box-shadow: 0 10px 18px rgba(0,0,0,.22);
 }}
 div[data-baseweb="input"] input,
-div[data-baseweb="textarea"] textarea{{ color: var(--text) !important; }}
-label, .stTextInput label, .stSelectbox label, .stNumberInput label{{
-  color: var(--muted2) !important;
-  font-weight: 850 !important;
+div[data-baseweb="textarea"] textarea {{ color: var(--text)!important; }}
+label, .stTextInput label, .stSelectbox label, .stNumberInput label {{
+  color: var(--muted2)!important;
+  font-weight: 850!important;
 }}
 div[data-baseweb="select"] > div:focus-within,
 div[data-baseweb="input"] > div:focus-within,
-div[data-baseweb="textarea"] > div:focus-within{{
-  outline: none !important;
-  box-shadow: 0 10px 18px rgba(0,0,0,.25), var(--focus) !important;
-  border-color: rgba(96,165,250,.35) !important;
+div[data-baseweb="textarea"] > div:focus-within {{
+  outline: none!important;
+  box-shadow: 0 10px 18px rgba(0,0,0,.25), var(--focus)!important;
+  border-color: rgba(96,165,250,.35)!important;
 }}
 
-/* Buttons (más "neón", sin tocar lógica) */
-.stButton>button{{
+.stButton>button {{
   width: 100%;
-  padding: 0.64rem 0.95rem;
+  padding: .64rem .92rem;
   border-radius: 16px;
-  border: 1px solid rgba(255,255,255,0.14);
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.05));
+  border: 1px solid var(--stroke);
+  background: linear-gradient(180deg, rgba(255,255,255,0.13), rgba(255,255,255,0.06));
   color: var(--text);
   font-weight: 980;
   box-shadow: 0 14px 24px rgba(0,0,0,.30);
   transition: transform .06s ease, box-shadow .12s ease, border-color .12s ease, filter .12s ease;
-  position: relative;
+}}
+.stButton>button:hover {{
+  border-color: rgba(34,197,94,.35);
+  box-shadow: 0 18px 34px rgba(0,0,0,.36);
+}}
+.stButton>button:active {{ transform: translateY(1px) scale(.985); filter: brightness(1.05); }}
+.stButton>button:focus {{ outline:none!important; box-shadow: 0 14px 24px rgba(0,0,0,.30), var(--focus)!important; }}
+
+[data-testid="stDownloadButton"] > button {{
+  border-radius: 16px!important;
+  border: 1px solid rgba(96,165,250,.28)!important;
+  background: linear-gradient(180deg, rgba(96,165,250,.18), rgba(255,255,255,0.06))!important;
+  color: var(--text)!important;
+  font-weight: 980!important;
+}}
+
+[data-testid="stExpander"] {{
+  border: 1px solid var(--stroke)!important;
+  border-radius: var(--r2)!important;
+  background: rgba(0,0,0,0.16)!important;
+  box-shadow: var(--sh2);
   overflow: hidden;
 }}
-.stButton>button::after{{
-  content:"";
-  position:absolute; inset:-2px;
-  background: radial-gradient(circle at 30% 10%, rgba(96,165,250,.18), transparent 40%);
-  opacity:.65;
-  pointer-events:none;
-}}
-.stButton>button:hover{{
-  border-color: rgba(96,165,250,.34);
-  box-shadow: 0 18px 34px rgba(0,0,0,.38);
-}}
-.stButton>button:active{{ transform: translateY(1px) scale(0.985); filter: brightness(1.05); }}
-.stButton>button:focus{{ outline: none !important; box-shadow: 0 14px 24px rgba(0,0,0,.30), var(--focus) !important; }}
+[data-testid="stExpander"] summary {{ font-weight: 980!important; }}
 
-/* Download button */
-[data-testid="stDownloadButton"] > button{{
-  border-radius: 16px !important;
-  border: 1px solid rgba(34,197,94,.28) !important;
-  background: linear-gradient(180deg, rgba(34,197,94,.16), rgba(255,255,255,0.06)) !important;
-  color: var(--text) !important;
-  font-weight: 980 !important;
-}}
-
-/* Expanders */
-[data-testid="stExpander"]{{
-  border: 1px solid var(--stroke) !important;
-  border-radius: var(--radius2) !important;
-  background: rgba(0,0,0,0.16) !important;
-  box-shadow: 0 18px 40px rgba(0,0,0,.34);
-  overflow: hidden;
-}}
-[data-testid="stExpander"] summary{{ font-weight: 980 !important; }}
-
-/* Tabs */
-[data-baseweb="tab-list"]{{
+[data-baseweb="tab-list"] {{
   background: rgba(0,0,0,0.18);
   border: 1px solid var(--stroke);
   border-radius: 16px;
@@ -273,53 +231,45 @@ div[data-baseweb="textarea"] > div:focus-within{{
   gap: 6px;
   box-shadow: 0 12px 22px rgba(0,0,0,.25);
 }}
-button[role="tab"]{{
-  border-radius: 12px !important;
-  font-weight: 980 !important;
-  color: var(--muted) !important;
+button[role="tab"] {{
+  border-radius: 12px!important;
+  font-weight: 980!important;
+  color: var(--muted)!important;
 }}
-button[role="tab"][aria-selected="true"]{{
-  background: linear-gradient(180deg, rgba(96,165,250,.20), rgba(0,0,0,.16)) !important;
-  color: var(--text) !important;
-  border: 1px solid rgba(96,165,250,.28) !important;
+button[role="tab"][aria-selected="true"] {{
+  background: linear-gradient(180deg, rgba(34,197,94,.20), rgba(0,0,0,.18))!important;
+  color: var(--text)!important;
+  border: 1px solid rgba(34,197,94,.28)!important;
 }}
 
-/* Alerts / uploader */
-[data-testid="stAlert"]{{
-  border-radius: 16px !important;
-  border: 1px solid var(--stroke) !important;
-  background: rgba(0,0,0,0.18) !important;
+[data-testid="stAlert"] {{
+  border-radius: 16px!important;
+  border: 1px solid var(--stroke)!important;
+  background: rgba(0,0,0,0.18)!important;
   box-shadow: 0 12px 22px rgba(0,0,0,.25);
 }}
-section[data-testid="stFileUploaderDropzone"]{{
-  border-radius: 16px !important;
-  border: 1px dashed rgba(255,255,255,0.22) !important;
-  background: rgba(0,0,0,0.14) !important;
+section[data-testid="stFileUploaderDropzone"] {{
+  border-radius: 16px!important;
+  border: 1px dashed rgba(255,255,255,0.22)!important;
+  background: rgba(0,0,0,0.14)!important;
   box-shadow: 0 12px 22px rgba(0,0,0,.25);
 }}
 
-/* Segmented control nav (más flotante, más pro) */
-div[data-testid="stSegmentedControl"] > div{{
-  border-radius: 999px !important;
-  border: 1px solid rgba(255,255,255,0.14) !important;
-  background: rgba(0,0,0,0.26) !important;
-  box-shadow: 0 14px 28px rgba(0,0,0,.38) !important;
-  padding: 6px !important;
-  backdrop-filter: blur(12px);
+div[data-testid="stSegmentedControl"] > div {{
+  border-radius: 18px!important;
+  border: 1px solid var(--stroke)!important;
+  background: rgba(0,0,0,0.20)!important;
+  box-shadow: 0 12px 22px rgba(0,0,0,.28)!important;
+  padding: 6px!important;
 }}
-div[data-testid="stSegmentedControl"] label{{
-  font-weight: 950 !important;
-  color: rgba(255,255,255,0.70) !important;
-}}
-div[data-testid="stSegmentedControl"] label[data-selected="true"]{{
-  color: var(--text) !important;
-}}
+div[data-testid="stSegmentedControl"] label {{ font-weight: 950!important; color: var(--muted)!important; }}
+div[data-testid="stSegmentedControl"] label[data-selected="true"] {{ color: var(--text)!important; }}
 
-/* Ring animation (igual que antes) */
-.ring-wrap{{ display:flex; gap: 12px; align-items:center; }}
-.ringSvg{{ width: 64px; height: 64px; filter: drop-shadow(0 14px 24px rgba(0,0,0,.30)); }}
-.ringTrack{{ stroke: rgba(255,255,255,.14); stroke-width: 10; }}
-.ringProg{{ stroke: var(--ringc); stroke-width: 10; stroke-linecap: round;
+.ring-wrap {{ display:flex; gap: 12px; align-items:center; }}
+.ringSvg {{ width: 64px; height: 64px; filter: drop-shadow(0 14px 24px rgba(0,0,0,.30)); }}
+.ringTrack {{ stroke: rgba(255,255,255,.14); stroke-width: 10; }}
+.ringProg {{
+  stroke: var(--ringc); stroke-width: 10; stroke-linecap: round;
   transform: rotate(-90deg); transform-origin: 50% 50%;
   stroke-dasharray: var(--circ);
   stroke-dashoffset: calc(var(--circ) * (1 - var(--p)));
@@ -329,101 +279,92 @@ div[data-testid="stSegmentedControl"] label[data-selected="true"]{{
   from {{ stroke-dashoffset: var(--circ); }}
   to   {{ stroke-dashoffset: calc(var(--circ) * (1 - var(--p))); }}
 }}
-.ringCenter{{ fill: rgba(0,0,0,0.25); stroke: rgba(255,255,255,0.10); stroke-width: 1; }}
-.ring-val{{ font-weight: 1000; fill: rgba(255,255,255,0.95); font-size: 12px; }}
-.ring-txt .t1{{ font-weight: 1000; line-height: 1.05rem; }}
-.ring-txt .t2{{ color: var(--muted); font-weight: 800; font-size: .88rem; margin-top: 2px; }}
+.ringCenter {{ fill: rgba(0,0,0,0.25); stroke: rgba(255,255,255,0.10); stroke-width: 1; }}
+.ring-val {{ font-weight: 1000; fill: rgba(255,255,255,0.95); font-size: 12px; }}
+.ring-txt .t1 {{ font-weight: 1000; line-height: 1.05rem; }}
+.ring-txt .t2 {{ color: var(--muted); font-weight: 800; font-size: .88rem; margin-top: 2px; }}
 
-/* Score pills */
-.pills{{ display:flex; gap: 8px; flex-wrap:wrap; margin-top:8px; }}
-.pill{{
+.pills {{ display:flex; gap: 8px; flex-wrap:wrap; margin-top:8px; }}
+.pill {{
   display:inline-flex; align-items:center; gap:8px;
   padding: 7px 10px; border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(0,0,0,0.20);
+  border: 1px solid var(--stroke2);
+  background: rgba(0,0,0,0.18);
   font-weight: 950; font-size:.90rem;
 }}
-.pill b{{ font-weight:1000; }}
-
-/* Last points timeline */
-.lp{{ display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }}
-.dot{{
+.lp {{ display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }}
+.dot {{
   width: 14px; height: 14px; border-radius: 999px;
   border: 1px solid rgba(255,255,255,0.18);
   box-shadow: 0 10px 18px rgba(0,0,0,.26);
 }}
-.dot.win{{ background: rgba(34,197,94,.96); }}
-.dot.lose{{ background: rgba(251,113,133,.92); }}
-.dot.pressure{{ outline: 3px solid rgba(251,191,36,.26); }}
+.dot.win {{ background: rgba(34,197,94,.96); }}
+.dot.lose {{ background: rgba(251,113,133,.92); }}
+.dot.pressure {{ outline: 3px solid rgba(251,191,36,.26); }}
 
-/* Charts container */
 [data-testid="stVegaLiteChart"] {{
-  background: rgba(0,0,0,0.10) !important;
-  border-radius: 16px !important;
-  border: 1px solid rgba(255,255,255,0.10) !important;
+  background: rgba(0,0,0,0.10)!important;
+  border-radius: 16px!important;
+  border: 1px solid rgba(255,255,255,0.10)!important;
 }}
 
-/* WinProb pulse */
-.pulseWinProb{{ animation: wpPulse .55s ease-in-out both; }}
-@keyframes wpPulse {{
-  0% {{ transform: scale(1); }}
-  35% {{ transform: scale(1.035); }}
-  100% {{ transform: scale(1); }}
-}}
+.pulseWinProb {{ animation: wpPulse .55s ease-in-out both; }}
+@keyframes wpPulse {{ 0%{{transform:scale(1)}} 35%{{transform:scale(1.035)}} 100%{{transform:scale(1)}} }}
 
-/* UI modes */
-.ui-pista .ts-title{{ font-size: 1.22rem; }}
-.ui-pista .ts-sub{{ font-size: .98rem; }}
-.ui-pista .stButton>button{{ padding: 0.92rem 1.06rem; border-radius: 18px; font-size: 1.02rem; }}
-.ui-pista .small-note{{ font-size: .98rem; }}
-.ui-pista .ts-card{{ padding: 12px 12px; }}
+.ui-pista .ts-title {{ font-size: 1.22rem; }}
+.ui-pista .ts-sub {{ font-size: .98rem; }}
+.ui-pista .stButton>button {{ padding: .90rem 1.05rem; border-radius: 18px; font-size: 1.02rem; }}
+.ui-pista .small-note {{ font-size: .98rem; }}
 
-.ui-casa .ts-card{{ padding: 12px 12px; }}
-.ui-casa .small-note{{ font-size: .90rem; }}
-.ui-casa .ts-title{{ font-size: 1.08rem; }}
+.ui-casa .ts-title {{ font-size: 1.10rem; }}
+.ui-casa .small-note {{ font-size: .90rem; }}
 
-/* Hero (login) */
-.hero{{
+/* Hero */
+.hero {{
   border: 1px solid rgba(255,255,255,0.14);
   border-radius: 26px;
   overflow: hidden;
-  box-shadow: var(--shadow);
+  box-shadow: 0 22px 60px rgba(0,0,0,.52);
   position: relative;
 }}
-.heroBg{{
+.heroBg {{
   position:absolute; inset:-12%;
-  background-image: url("{BG_GIF}");
-  background-size: cover;
-  background-position: center;
-  filter: blur(14px) saturate(1.06) contrast(1.06);
-  opacity: .62;
+  background-image: url("{bg_gif}");
+  background-size: cover; background-position:center;
+  filter: blur(10px) saturate(1.06) contrast(1.06);
+  opacity: .70;
 }}
-.heroOverlay{{
+.heroOverlay {{
   position:absolute; inset:0;
   background:
-    radial-gradient(900px 380px at 18% 10%, rgba(96,165,250,.26), transparent 60%),
-    radial-gradient(900px 420px at 86% 18%, rgba(34,197,94,.22), transparent 62%),
-    linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.62));
+    radial-gradient(900px 400px at 18% 12%, rgba(34,197,94,.23), transparent 60%),
+    radial-gradient(900px 420px at 86% 18%, rgba(96,165,250,.22), transparent 62%),
+    linear-gradient(180deg, rgba(0,0,0,.20), rgba(0,0,0,.58));
 }}
-.heroInner{{ position:relative; padding: 18px 16px 16px 16px; }}
-.heroClaim{{ font-size: 1.55rem; font-weight: 1100; letter-spacing: .4px; margin: 0; line-height: 1.1; }}
-.heroSub{{ margin-top: 8px; color: rgba(255,255,255,.84); font-weight: 850; }}
-.heroName{{
-  margin-top: 10px;
-  display:inline-flex; align-items:center; gap:8px;
-  padding: 8px 12px; border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.16);
-  background: rgba(0,0,0,.22);
-  font-weight: 1000;
-}}
-.heroShine{{
+.heroShine {{
   position:absolute; inset:0;
   background: radial-gradient(circle at 22% 10%, rgba(255,255,255,.16), transparent 35%);
   pointer-events:none;
 }}
+.heroInner {{ position:relative; padding: 18px 16px 16px; }}
+.heroClaim {{
+  font-size: 1.55rem; font-weight: 1100; letter-spacing: .4px;
+  margin: 0; line-height: 1.1;
+}}
+.heroSub {{ margin-top: 8px; color: rgba(255,255,255,.84); font-weight: 850; }}
+.heroName {{
+  margin-top: 10px;
+  display:inline-flex; align-items:center; gap:8px;
+  padding: 8px 12px; border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.16);
+  background: rgba(0,0,0,.20);
+  font-weight: 1000;
+}}
 </style>
 """
-st.markdown(PRO_CSS, unsafe_allow_html=True)
+
+
+st.markdown(build_css(BG_GIF), unsafe_allow_html=True)
 
 
 # ==========================================================
@@ -568,7 +509,6 @@ def fetch_tennis_news(max_items: int = 15):
             continue
         seen.add(it["link"])
         uniq.append(it)
-
     return uniq[:max_items]
 
 
@@ -744,9 +684,7 @@ class LiveMatch:
         p = self.estimate_point_win_prob()
         p_r = round(p, 3)
         st_ = self.state
-        return _prob_match_bo3(
-            p_r, st_.sets_me, st_.sets_opp, st_.games_me, st_.games_opp, st_.pts_me, st_.pts_opp, st_.in_tiebreak
-        )
+        return _prob_match_bo3(p_r, st_.sets_me, st_.sets_opp, st_.games_me, st_.games_opp, st_.pts_me, st_.pts_opp, st_.in_tiebreak)
 
     def win_prob_series(self):
         probs = []
@@ -1018,10 +956,11 @@ def coach_summary_from_match(m: dict) -> str:
     if opp_err >= 5 and winners < 3:
         strengths.append("sacaste puntos provocando error del rival: buena consistencia.")
 
-    plan = []
-    plan.append("1) Prioriza consistencia (altura/profundidad) y acelera solo con bola clara.")
-    plan.append("2) En puntos importantes: rutina corta (respira, objetivo simple, juega al %).")
-    plan.append("3) Saque: 1º con dirección; 2º con más efecto/altura, mismo ritual siempre.")
+    plan = [
+        "1) Prioriza consistencia (altura/profundidad) y acelera solo con bola clara.",
+        "2) En puntos importantes: rutina corta (respira, objetivo simple, juega al %).",
+        "3) Saque: 1º con dirección; 2º con más efecto/altura, mismo ritual siempre.",
+    ]
 
     s_txt = " ".join(strengths) if strengths else "buen partido en líneas generales."
     f_txt = " ".join(focus) if focus else "pocos puntos débiles claros: sigue consolidando lo que funcionó."
@@ -1055,8 +994,7 @@ def ai_coach_summary_from_match(m: dict) -> str:
         return (
             "⚠️ **Resumen IA no disponible** (falta `OPENAI_API_KEY`).\n\n"
             "Para activarlo, añade la key en `st.secrets` o variable de entorno.\n\n"
-            "Mientras tanto, aquí tienes el resumen estándar:\n\n"
-            + base_summary
+            "Mientras tanto, aquí tienes el resumen estándar:\n\n" + base_summary
         )
 
     fin = (m.get("finishes") or {})
@@ -1166,36 +1104,36 @@ def title_h(txt: str):
 # ==========================================================
 # VISUAL HELPERS (NO FUNCTIONAL CHANGES)
 # ==========================================================
-def ring(label: str, value: float, sub: str = "", color: str = "var(--a1)"):
+def ring(label: str, value: float, sub: str = "", color: str = "var(--accent)"):
     v = 0.0 if value is None else float(value)
     v = max(0.0, min(100.0, v))
     p = v / 100.0
     html = f"""
-    <div class="ring-wrap">
-      <svg class="ringSvg" viewBox="0 0 64 64" style="--ringc:{color}; --p:{p}; --circ:150.796447372;">
-        <circle class="ringCenter" cx="32" cy="32" r="22"></circle>
-        <circle class="ringTrack" cx="32" cy="32" r="24" fill="none"></circle>
-        <circle class="ringProg"  cx="32" cy="32" r="24" fill="none"></circle>
-        <text class="ring-val" x="32" y="36" text-anchor="middle">{v:.0f}%</text>
-      </svg>
-      <div class="ring-txt">
-        <div class="t1">{label}</div>
-        <div class="t2">{sub}</div>
-      </div>
-    </div>
-    """
+<div class="ring-wrap">
+  <svg class="ringSvg" viewBox="0 0 64 64" style="--ringc:{color}; --p:{p}; --circ:150.796447372;">
+    <circle class="ringCenter" cx="32" cy="32" r="22"></circle>
+    <circle class="ringTrack" cx="32" cy="32" r="24" fill="none"></circle>
+    <circle class="ringProg"  cx="32" cy="32" r="24" fill="none"></circle>
+    <text class="ring-val" x="32" y="36" text-anchor="middle">{v:.0f}%</text>
+  </svg>
+  <div class="ring-txt">
+    <div class="t1">{label}</div>
+    <div class="t2">{sub}</div>
+  </div>
+</div>
+"""
     st.markdown(f"<div class='ts-card tight'>{html}</div>", unsafe_allow_html=True)
 
 
 def score_pills(sets_me, sets_opp, games_me, games_opp, pts_label, surface):
     html = f"""
-    <div class="pills">
-      <div class="pill">🧱 <b>{surface}</b></div>
-      <div class="pill">🎾 Sets <b>{sets_me}-{sets_opp}</b></div>
-      <div class="pill">🧾 Juegos <b>{games_me}-{games_opp}</b></div>
-      <div class="pill">🔢 Puntos <b>{pts_label}</b></div>
-    </div>
-    """
+<div class="pills">
+  <div class="pill">🧱 <b>{surface}</b></div>
+  <div class="pill">🎾 Sets <b>{sets_me}-{sets_opp}</b></div>
+  <div class="pill">🧾 Juegos <b>{games_me}-{games_opp}</b></div>
+  <div class="pill">🔢 Puntos <b>{pts_label}</b></div>
+</div>
+"""
     st.markdown(html, unsafe_allow_html=True)
 
 
@@ -1208,71 +1146,57 @@ def last_points_timeline(points, n=18):
             cls += " pressure"
         dots.append(f"<span class='dot {cls}' title='{p.get('result','')}'></span>")
     html = f"""
-    <div style="font-weight:1000;">Últimos puntos</div>
-    <div class="small-note">Verde=ganado · Rosa=perdido · Borde=presión</div>
-    <div class="lp">{''.join(dots) if dots else "<span class='small-note'>Aún no hay puntos.</span>"}</div>
-    """
+<div style="font-weight:1000;">Últimos puntos</div>
+<div class="small-note">Verde=ganado · Rosa=perdido · Borde=presión</div>
+<div class="lp">{''.join(dots) if dots else "<span class='small-note'>Aún no hay puntos.</span>"}</div>
+"""
     st.markdown(f"<div class='ts-card'>{html}</div>", unsafe_allow_html=True)
 
 
 def court_svg(surface: str):
-    surf_color = {
-        "Tierra batida": "#f97316",
-        "Pista rápida": "#60a5fa",
-        "Hierba": "#22c55e",
-        "Indoor": "#a78bfa",
-    }.get(surface, "#60a5fa")
+    surf_color = {"Tierra batida": "#f97316", "Pista rápida": "#60a5fa", "Hierba": "#22c55e", "Indoor": "#a78bfa"}.get(surface, "#60a5fa")
     html = f"""
-    <div class="ts-row">
-      <div style="font-weight:1000;">Pista</div>
-      <div class="small-note">Decorativa</div>
-    </div>
-    <svg viewBox="0 0 400 210" width="100%" height="150" style="margin-top:8px; border-radius:16px; overflow:hidden;">
-      <defs>
-        <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stop-color="{surf_color}" stop-opacity="0.92"/>
-          <stop offset="1" stop-color="{surf_color}" stop-opacity="0.55"/>
-        </linearGradient>
-        <pattern id="grain" width="6" height="6" patternUnits="userSpaceOnUse">
-          <circle cx="1" cy="2" r="0.7" fill="rgba(255,255,255,0.10)"/>
-          <circle cx="4" cy="5" r="0.7" fill="rgba(0,0,0,0.18)"/>
-        </pattern>
-        <radialGradient id="shine" cx="30%" cy="20%" r="80%">
-          <stop offset="0" stop-color="rgba(255,255,255,0.18)"/>
-          <stop offset="1" stop-color="rgba(255,255,255,0.00)"/>
-        </radialGradient>
-      </defs>
-      <rect x="0" y="0" width="400" height="210" fill="url(#g)"/>
-      <rect x="0" y="0" width="400" height="210" fill="url(#grain)" opacity="0.60"/>
-      <rect x="0" y="0" width="400" height="210" fill="url(#shine)" opacity="0.85"/>
-      <rect x="20" y="15" width="360" height="180" fill="none" stroke="rgba(255,255,255,0.86)" stroke-width="3"/>
-      <line x1="200" y1="15" x2="200" y2="195" stroke="rgba(255,255,255,0.78)" stroke-width="3"/>
-      <rect x="60" y="45" width="280" height="120" fill="none" stroke="rgba(255,255,255,0.78)" stroke-width="3"/>
-      <line x1="60" y1="105" x2="340" y2="105" stroke="rgba(255,255,255,0.78)" stroke-width="3"/>
-      <circle cx="200" cy="105" r="6" fill="rgba(255,255,255,0.85)"/>
-    </svg>
-    """
+<div class="ts-row">
+  <div style="font-weight:1000;">Pista</div>
+  <div class="small-note">Decorativa</div>
+</div>
+<svg viewBox="0 0 400 210" width="100%" height="150" style="margin-top:8px; border-radius:16px; overflow:hidden;">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="{surf_color}" stop-opacity="0.92"/>
+      <stop offset="1" stop-color="{surf_color}" stop-opacity="0.55"/>
+    </linearGradient>
+    <pattern id="grain" width="6" height="6" patternUnits="userSpaceOnUse">
+      <circle cx="1" cy="2" r="0.7" fill="rgba(255,255,255,0.10)"/>
+      <circle cx="4" cy="5" r="0.7" fill="rgba(0,0,0,0.18)"/>
+    </pattern>
+    <radialGradient id="shine" cx="30%" cy="20%" r="80%">
+      <stop offset="0" stop-color="rgba(255,255,255,0.18)"/>
+      <stop offset="1" stop-color="rgba(255,255,255,0.00)"/>
+    </radialGradient>
+  </defs>
+  <rect x="0" y="0" width="400" height="210" fill="url(#g)"/>
+  <rect x="0" y="0" width="400" height="210" fill="url(#grain)" opacity="0.60"/>
+  <rect x="0" y="0" width="400" height="210" fill="url(#shine)" opacity="0.85"/>
+  <rect x="20" y="15" width="360" height="180" fill="none" stroke="rgba(255,255,255,0.86)" stroke-width="3"/>
+  <line x1="200" y1="15" x2="200" y2="195" stroke="rgba(255,255,255,0.78)" stroke-width="3"/>
+  <rect x="60" y="45" width="280" height="120" fill="none" stroke="rgba(255,255,255,0.78)" stroke-width="3"/>
+  <line x1="60" y1="105" x2="340" y2="105" stroke="rgba(255,255,255,0.78)" stroke-width="3"/>
+  <circle cx="200" cy="105" r="6" fill="rgba(255,255,255,0.85)"/>
+</svg>
+"""
     st.markdown(f"<div class='ts-card'>{html}</div>", unsafe_allow_html=True)
 
 
 def icon_svg(kind: str):
-    icons = {
-        "bolt": """
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M13 2L3 14h8l-1 8 11-14h-8l0-6z" fill="rgba(96,165,250,.92)"/>
-        </svg>""",
-        "shield": """
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M12 2l8 4v6c0 6-4 9-8 10-4-1-8-4-8-10V6l8-4z" fill="rgba(251,191,36,.92)"/>
-        </svg>""",
-        "trophy": """
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M7 4h10v3a5 5 0 0 1-10 0V4z" fill="rgba(34,197,94,.92)"/>
-          <path d="M9 18h6v2H9z" fill="rgba(255,255,255,.42)"/>
-          <path d="M10 13h4v5h-4z" fill="rgba(255,255,255,.28)"/>
-        </svg>""",
-    }
-    return icons.get(kind, "")
+    # keep tiny + fast
+    if kind == "bolt":
+        return """<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h8l-1 8 11-14h-8l0-6z" fill="rgba(96,165,250,.92)"/></svg>"""
+    if kind == "shield":
+        return """<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2l8 4v6c0 6-4 9-8 10-4-1-8-4-8-10V6l8-4z" fill="rgba(251,191,36,.92)"/></svg>"""
+    if kind == "trophy":
+        return """<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M7 4h10v3a5 5 0 0 1-10 0V4z" fill="rgba(34,197,94,.92)"/><path d="M9 18h6v2H9z" fill="rgba(255,255,255,.42)"/><path d="M10 13h4v5h-4z" fill="rgba(255,255,255,.28)"/></svg>"""
+    return ""
 
 
 # ==========================================================
@@ -1282,17 +1206,17 @@ def auth_block():
     name_hint = st.session_state.get("_login_user_hint", "") or "Jugador"
     st.markdown(
         f"""
-        <div class="hero">
-          <div class="heroBg"></div>
-          <div class="heroOverlay"></div>
-          <div class="heroShine"></div>
-          <div class="heroInner">
-            <div class="heroClaim">Track. Compete. Improve.</div>
-            <div class="heroSub">Tu partido, punto a punto. Tu progreso, partido a partido.</div>
-            <div class="heroName">🎾 {name_hint}</div>
-          </div>
-        </div>
-        """,
+<div class="hero">
+  <div class="heroBg"></div>
+  <div class="heroOverlay"></div>
+  <div class="heroShine"></div>
+  <div class="heroInner">
+    <div class="heroClaim">Track. Compete. Improve.</div>
+    <div class="heroSub">Tu partido, punto a punto. Tu progreso, partido a partido.</div>
+    <div class="heroName">🎾 {name_hint}</div>
+  </div>
+</div>
+""",
         unsafe_allow_html=True,
     )
     st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
@@ -1374,6 +1298,7 @@ history: MatchHistory = st.session_state.history
 user_key = st.session_state.auth_key
 user_display = st.session_state.auth_user
 
+# Sidebar (same controls)
 with st.sidebar:
     st.markdown("### 🎾 TennisStats")
     st.caption("Panel (en móvil puedes colapsarlo)")
@@ -1388,6 +1313,7 @@ with st.sidebar:
 ui_cls = "ui-pista" if st.session_state.ui_mode == "Pista" else "ui-casa"
 st.markdown(f"<div class='{ui_cls}'>", unsafe_allow_html=True)
 
+# NAV (same map)
 page_map = {"🎾": "LIVE", "📈": "ANALYSIS", "📊": "STATS", "📰": "NEWS", "🧠": "PSICO"}
 labels = list(page_map.keys())
 current_label = next((k for k, v in page_map.items() if v == st.session_state.page), "🎾")
@@ -1409,6 +1335,7 @@ with st.sidebar:
         st.session_state.finish = None
         st.rerun()
 
+# TOP DASHBOARD
 total_pts, won_pts, pct_pts = live.points_stats()
 p_point = live.estimate_point_win_prob()
 p_match = live.match_win_prob() * 100.0
@@ -1422,28 +1349,34 @@ st.session_state._last_p_match = float(p_match)
 wp_cls = "pulseWinProb" if pulse else ""
 st.markdown(
     f"""
-    <div class="ts-card pad">
-      <div class="ts-title">🏟️ TennisStats — Dashboard</div>
-      <div class="ts-sub">Neon HUD · Marcador live · Tendencias · Historial privado</div>
-      <div class="ts-chiprow">
-        <div class="ts-chip"><span class="ts-dot"></span> {user_display}</div>
-        <div class="ts-chip {wp_cls}">
-          <span class="ts-dot" style="background: var(--a2); box-shadow:0 0 0 3px rgba(96,165,250,.18);"></span>
-          Win Prob <b>{p_match:.1f}%</b>
-        </div>
-        <div class="ts-chip"><span class="ts-dot" style="background: var(--a5); box-shadow:0 0 0 3px rgba(251,191,36,.18);"></span> p(punto) <b>{p_point:.2f}</b></div>
-        <div class="ts-chip"><span class="ts-dot" style="background: var(--a4); box-shadow:0 0 0 3px rgba(251,113,133,.18);"></span> Puntos <b>{won_pts}/{total_pts}</b></div>
-      </div>
+<div class="ts-card pad">
+  <div class="ts-title">🏟️ TennisStats — Dashboard</div>
+  <div class="ts-sub">Marcador live · Tendencias · Historial privado</div>
+  <div class="ts-chiprow">
+    <div class="ts-chip"><span class="ts-dot"></span> {user_display}</div>
+    <div class="ts-chip {wp_cls}">
+      <span class="ts-dot" style="background: var(--accent2); box-shadow:0 0 0 3px rgba(96,165,250,.18);"></span>
+      Win Prob <b>{p_match:.1f}%</b>
     </div>
-    """,
+    <div class="ts-chip">
+      <span class="ts-dot" style="background: var(--warn); box-shadow:0 0 0 3px rgba(251,191,36,.18);"></span>
+      p(punto) <b>{p_point:.2f}</b>
+    </div>
+    <div class="ts-chip">
+      <span class="ts-dot" style="background: var(--danger); box-shadow:0 0 0 3px rgba(251,113,133,.18);"></span>
+      Puntos <b>{won_pts}/{total_pts}</b>
+    </div>
+  </div>
+</div>
+""",
     unsafe_allow_html=True,
 )
 
 top1, top2 = st.columns(2, gap="small")
 with top1:
-    ring("Puntos ganados", pct_pts, f"{won_pts}/{total_pts}", "var(--a1)")
+    ring("Puntos ganados", pct_pts, f"{won_pts}/{total_pts}", "var(--accent)")
 with top2:
-    ring("Prob. victoria", p_match, "Modelo Markov", "var(--a2)")
+    ring("Prob. victoria", p_match, "Modelo Markov", "var(--accent2)")
 
 
 # ==========================================================
@@ -1761,7 +1694,7 @@ elif st.session_state.page == "ANALYSIS":
     pressure_total = sum(1 for p in live.points if p.get("pressure"))
     pressure_won = sum(1 for p in live.points if p.get("pressure") and p.get("result") == "win")
     pressure_pct = (pressure_won / pressure_total * 100.0) if pressure_total else 0.0
-    ring("Presión", pressure_pct, f"{pressure_won}/{pressure_total} ganados", "var(--a5)")
+    ring("Presión", pressure_pct, f"{pressure_won}/{pressure_total} ganados", "var(--warn)")
     st.write(f"**{pressure_won}/{pressure_total}** ganados ({pressure_pct:.0f}%) en deuce/tiebreak.")
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -1784,11 +1717,11 @@ elif st.session_state.page == "STATS":
 
     c1, c2, c3 = st.columns(3, gap="small")
     with c1:
-        ring("Partidos", agg["matches_pct"], f"{agg['matches_win']} / {agg['matches_total']}", "var(--a1)")
+        ring("Partidos", agg["matches_pct"], f"{agg['matches_win']} / {agg['matches_total']}", "var(--accent)")
     with c2:
-        ring("Sets", agg["sets_pct"], f"{agg['sets_w']} / {agg['sets_w'] + agg['sets_l']}", "var(--a2)")
+        ring("Sets", agg["sets_pct"], f"{agg['sets_w']} / {agg['sets_w'] + agg['sets_l']}", "var(--accent2)")
     with c3:
-        ring("Juegos", agg["games_pct"], f"{agg['games_w']} / {agg['games_w'] + agg['games_l']}", "var(--a5)")
+        ring("Juegos", agg["games_pct"], f"{agg['games_w']} / {agg['games_w'] + agg['games_l']}", "var(--warn)")
 
     st.markdown("<div class='ts-card pad'>", unsafe_allow_html=True)
     st.markdown(f"{icon_svg('trophy')} <b>Resumen</b>", unsafe_allow_html=True)
@@ -1797,10 +1730,7 @@ elif st.session_state.page == "STATS":
         f"**Presión:** {agg['pressure_won']}/{agg['pressure_total']} ({agg['pressure_pct']:.0f}%)"
     )
     fin = agg["finishes_sum"]
-    small_note(
-        f"Winners {fin['winner']} · ENF {fin['unforced']} · EF {fin['forced']} · "
-        f"Aces {fin['ace']} · Dobles faltas {fin['double_fault']}"
-    )
+    small_note(f"Winners {fin['winner']} · ENF {fin['unforced']} · EF {fin['forced']} · Aces {fin['ace']} · Dobles faltas {fin['double_fault']}")
     st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("<div class='ts-card pad'>", unsafe_allow_html=True)
@@ -1833,9 +1763,7 @@ elif st.session_state.page == "STATS":
     st.markdown("</div>", unsafe_allow_html=True)
 
     if st.session_state.ui_mode == "Casa" and history.matches:
-        series = []
-        for m in history.matches[-40:]:
-            series.append(float(m.get("points_pct", 0) or 0))
+        series = [float(m.get("points_pct", 0) or 0) for m in history.matches[-40:]]
         st.markdown("<div class='ts-card pad'>", unsafe_allow_html=True)
         st.subheader("Comparativa rápida", anchor=False)
         small_note("Tendencia del % de puntos ganados en tus últimos partidos (hasta 40).")
@@ -1916,14 +1844,15 @@ else:
 
                 b64 = base64.b64encode(data).decode("utf-8")
                 html = f"""
-                <iframe
-                    src="data:application/pdf;base64,{b64}"
-                    width="100%"
-                    height="650"
-                    style="border: 1px solid rgba(255,255,255,0.14); border-radius: 14px; background: rgba(0,0,0,0.18);"
-                ></iframe>
-                """
+<iframe
+  src="data:application/pdf;base64,{b64}"
+  width="100%"
+  height="650"
+  style="border: 1px solid rgba(255,255,255,0.14); border-radius: 14px; background: rgba(0,0,0,0.18);"
+></iframe>
+"""
                 st.components.v1.html(html, height=680, scrolling=False)
     st.markdown("</div>", unsafe_allow_html=True)
 
+# close ui wrapper
 st.markdown("</div>", unsafe_allow_html=True)
