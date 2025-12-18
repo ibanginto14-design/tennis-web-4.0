@@ -5,6 +5,7 @@ import base64
 import secrets
 import hashlib
 import urllib.request
+import urllib.parse
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from dataclasses import dataclass
@@ -57,10 +58,10 @@ if BG_GIF:
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  opacity: 0.14;
+  opacity: 0.14; /* ajusta 0.10-0.20 */
   filter: saturate(1.10) contrast(1.08);
   pointer-events: none;
-  z-index: 0;
+  z-index: 0; /* <-- CLAVE: antes estaba en -1 */
 }}
 """
 
@@ -76,10 +77,10 @@ PRO_CSS = f"""
   --muted2: rgba(255,255,255,0.62);
   --stroke: rgba(255,255,255,0.14);
   --stroke2: rgba(255,255,255,0.10);
-  --accent:#22c55e;
-  --accent2:#60a5fa;
-  --danger:#fb7185;
-  --warn:#fbbf24;
+  --accent:#22c55e;       /* green */
+  --accent2:#60a5fa;      /* blue */
+  --danger:#fb7185;       /* pink/red */
+  --warn:#fbbf24;         /* amber */
   --radius: 18px;
   --radius2: 22px;
   --shadow: 0 22px 60px rgba(0,0,0,.45);
@@ -194,14 +195,13 @@ div[data-baseweb="textarea"] > div:focus-within{{
   color: var(--text);
   font-weight: 980;
   box-shadow: 0 14px 24px rgba(0,0,0,.30);
-  transition: transform .06s ease, box-shadow .12s ease, border-color .12s ease, filter .12s ease;
+  transition: transform .06s ease, box-shadow .12s ease, border-color .12s ease;
 }}
 .stButton>button:hover{{
   border-color: rgba(34,197,94,.35);
   box-shadow: 0 18px 34px rgba(0,0,0,.36);
 }}
-/* (3) Feedback táctil visual: scale 0.98 */
-.stButton>button:active{{ transform: translateY(1px) scale(0.98); filter: brightness(1.05); }}
+.stButton>button:active{{ transform: translateY(1px) scale(0.99); }}
 .stButton>button:focus{{ outline: none !important; box-shadow: 0 14px 24px rgba(0,0,0,.30), var(--focus) !important; }}
 
 /* Download button */
@@ -266,24 +266,27 @@ div[data-testid="stSegmentedControl"] > div{{
   padding: 6px !important;
 }}
 div[data-testid="stSegmentedControl"] label{{ font-weight: 950 !important; color: var(--muted) !important; }}
-div[data-testid="stSegmentedControl"] label[data-selected="true"]{{ color: var(--text) !important; }}
+div[data-testid="stSegmentedControl"] label[data-selected="true"]{{
+  color: var(--text) !important;
+}}
 
-/* (3) Ring animation: SVG donut draws in smoothly */
+/* Donut rings */
 .ring-wrap{{ display:flex; gap: 12px; align-items:center; }}
-.ringSvg{{ width: 64px; height: 64px; filter: drop-shadow(0 14px 24px rgba(0,0,0,.30)); }}
-.ringTrack{{ stroke: rgba(255,255,255,.14); stroke-width: 10; }}
-.ringProg{{ stroke: var(--ringc); stroke-width: 10; stroke-linecap: round;
-  transform: rotate(-90deg); transform-origin: 50% 50%;
-  stroke-dasharray: var(--circ);
-  stroke-dashoffset: calc(var(--circ) * (1 - var(--p)));
-  animation: ringFill .55s cubic-bezier(.2,.9,.2,1) both;
+.ring{{
+  width: 60px; height: 60px; border-radius: 999px;
+  background: conic-gradient(var(--ringc) var(--deg), rgba(255,255,255,.12) 0);
+  position: relative; box-shadow: 0 14px 24px rgba(0,0,0,.30);
 }}
-@keyframes ringFill {{
-  from {{ stroke-dashoffset: var(--circ); }}
-  to   {{ stroke-dashoffset: calc(var(--circ) * (1 - var(--p))); }}
+.ring::after{{
+  content:""; position:absolute; inset: 8px; border-radius: 999px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.10);
+  backdrop-filter: blur(10px);
 }}
-.ringCenter{{ fill: rgba(0,0,0,0.25); stroke: rgba(255,255,255,0.10); stroke-width: 1; }}
-.ring-val{{ font-weight: 1000; fill: rgba(255,255,255,0.95); font-size: 12px; }}
+.ring-val{{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-weight: 1000; color: var(--text); font-size: .92rem; z-index: 2;
+}}
 .ring-txt .t1{{ font-weight: 1000; line-height: 1.05rem; }}
 .ring-txt .t2{{ color: var(--muted); font-weight: 800; font-size: .88rem; margin-top: 2px; }}
 
@@ -316,69 +319,31 @@ div[data-testid="stSegmentedControl"] label[data-selected="true"]{{ color: var(-
   border: 1px solid rgba(255,255,255,0.10) !important;
 }}
 
-/* (3) WinProb pulse when big change */
-.pulseWinProb{{ animation: wpPulse .55s ease-in-out both; }}
-@keyframes wpPulse {{
-  0% {{ transform: scale(1); }}
-  35% {{ transform: scale(1.035); }}
-  100% {{ transform: scale(1); }}
+/* ======================================================
+   PAGE TRANSITIONS (slide suave entre páginas)
+   - Sin marear: duración corta + easing suave
+   ====================================================== */
+@keyframes tsSlideInRight {{
+  from {{ opacity: 0; transform: translate3d(12px, 0, 0); }}
+  to   {{ opacity: 1; transform: translate3d(0, 0, 0); }}
 }}
+@keyframes tsSlideInLeft {{
+  from {{ opacity: 0; transform: translate3d(-12px, 0, 0); }}
+  to   {{ opacity: 1; transform: translate3d(0, 0, 0); }}
+}}
+.ts-page-anim {{
+  will-change: transform, opacity;
+  animation-duration: .18s;
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+}}
+.ts-page-anim.right {{ animation-name: tsSlideInRight; }}
+.ts-page-anim.left  {{ animation-name: tsSlideInLeft;  }}
 
-/* (4) UI modes (layout + CSS only) */
-.ui-pista .ts-title{{ font-size: 1.22rem; }}
-.ui-pista .ts-sub{{ font-size: .98rem; }}
-.ui-pista .stButton>button{{ padding: 0.90rem 1.05rem; border-radius: 18px; font-size: 1.02rem; }}
-.ui-pista .small-note{{ font-size: .98rem; }}
-.ui-pista .ts-card{{ padding: 12px 12px; }}
-
-.ui-casa .ts-card{{ padding: 12px 12px; }}
-.ui-casa .small-note{{ font-size: .90rem; }}
-.ui-casa .ts-title{{ font-size: 1.08rem; }}
-
-/* (8) Strong cover / hero (used in auth) */
-.hero{{
-  border: 1px solid rgba(255,255,255,0.14);
-  border-radius: 26px;
-  overflow: hidden;
-  box-shadow: 0 22px 60px rgba(0,0,0,.52);
-  position: relative;
-}}
-.heroBg{{
-  position:absolute; inset:-12%;
-  background-image: url("{BG_GIF}");
-  background-size: cover;
-  background-position: center;
-  filter: blur(10px) saturate(1.08) contrast(1.06);
-  opacity: .70;
-}}
-.heroOverlay{{
-  position:absolute; inset:0;
-  background: radial-gradient(900px 400px at 18% 12%, rgba(34,197,94,.24), transparent 60%),
-              radial-gradient(900px 420px at 86% 18%, rgba(96,165,250,.22), transparent 62%),
-              linear-gradient(180deg, rgba(0,0,0,.22), rgba(0,0,0,.55));
-}}
-.heroInner{{
-  position:relative; padding: 18px 16px 16px 16px;
-}}
-.heroClaim{{
-  font-size: 1.55rem; font-weight: 1100; letter-spacing: .4px;
-  margin: 0; line-height: 1.1;
-}}
-.heroSub{{
-  margin-top: 8px; color: rgba(255,255,255,.84); font-weight: 850;
-}}
-.heroName{{
-  margin-top: 10px;
-  display:inline-flex; align-items:center; gap:8px;
-  padding: 8px 12px; border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.16);
-  background: rgba(0,0,0,.20);
-  font-weight: 1000;
-}}
-.heroShine{{
-  position:absolute; inset:0;
-  background: radial-gradient(circle at 22% 10%, rgba(255,255,255,.16), transparent 35%);
-  pointer-events:none;
+@media (prefers-reduced-motion: reduce) {{
+  .ts-page-anim, .ts-page-anim.right, .ts-page-anim.left {{
+    animation: none !important;
+  }}
 }}
 </style>
 """
@@ -529,6 +494,65 @@ def fetch_tennis_news(max_items: int = 15):
         uniq.append(it)
 
     return uniq[:max_items]
+
+
+# ==========================================================
+# WIDGET TIEMPO (LIVE) - Open-Meteo (sin API key)
+# ==========================================================
+@st.cache_data(ttl=1800, show_spinner=False)
+def fetch_weather_open_meteo(lat: float, lon: float, tz: str = "Europe/Madrid") -> dict:
+    try:
+        params = {
+            "latitude": f"{lat:.4f}",
+            "longitude": f"{lon:.4f}",
+            "current_weather": "true",
+            "timezone": tz,
+        }
+        url = "https://api.open-meteo.com/v1/forecast?" + urllib.parse.urlencode(params)
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Streamlit TennisStats)"})
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            raw = resp.read().decode("utf-8")
+        return json.loads(raw)
+    except Exception:
+        return {}
+
+
+def weather_widget_card():
+    # Por defecto Donostia (puedes cambiar coords si quieres)
+    lat, lon = 43.3224, -1.9839  # Donostia-San Sebastián
+    obj = fetch_weather_open_meteo(lat, lon, tz="Europe/Madrid")
+    cw = (obj or {}).get("current_weather") or {}
+    if not cw:
+        st.markdown(
+            "<div class='ts-card'><div style='font-weight:1000;'>☁️ Tiempo</div>"
+            "<div class='small-note'>No se pudo cargar ahora mismo.</div></div>",
+            unsafe_allow_html=True,
+        )
+        return
+
+    temp = cw.get("temperature", None)
+    wind = cw.get("windspeed", None)
+    wdir = cw.get("winddirection", None)
+    tstr = f"{temp:.0f}°C" if isinstance(temp, (int, float)) else "—"
+    wstr = f"{wind:.0f} km/h" if isinstance(wind, (int, float)) else "—"
+    dstr = f"{wdir:.0f}°" if isinstance(wdir, (int, float)) else "—"
+    ttime = cw.get("time", "")
+
+    html = f"""
+    <div class="ts-card">
+      <div class="ts-row">
+        <div style="font-weight:1000;">☁️ Tiempo (Donostia)</div>
+        <div class="small-note mono">{ttime}</div>
+      </div>
+      <div class="ts-chiprow" style="margin-top:8px;">
+        <div class="ts-chip">🌡️ <b>{tstr}</b></div>
+        <div class="ts-chip">💨 <b>{wstr}</b></div>
+        <div class="ts-chip">🧭 <b>{dstr}</b></div>
+      </div>
+      <div class="small-note" style="margin-top:6px;">Widget ligero (Open-Meteo). Útil para entrenos/partidos.</div>
+    </div>
+    """
+    st.markdown(html, unsafe_allow_html=True)
 
 
 # ==========================================================
@@ -1094,12 +1118,14 @@ def ss_init():
         st.session_state.auth_key = None
     if "authed" not in st.session_state:
         st.session_state.authed = False
-    # (4) UI Mode: Pista (default) vs Casa
-    if "ui_mode" not in st.session_state:
-        st.session_state.ui_mode = "Pista"
-    # (3) WinProb pulse tracking (UI only)
-    if "_last_p_match" not in st.session_state:
-        st.session_state._last_p_match = None
+
+    # ✅ NUEVO (solo UX): transiciones de página
+    if "prev_page" not in st.session_state:
+        st.session_state.prev_page = st.session_state.page
+    if "page_anim_dir" not in st.session_state:
+        st.session_state.page_anim_dir = "right"
+    if "page_anim_token" not in st.session_state:
+        st.session_state.page_anim_token = 0
 
 
 ss_init()
@@ -1125,22 +1151,49 @@ def title_h(txt: str):
 
 
 # ==========================================================
+# PAGE TRANSITION HELPERS (solo visual)
+# ==========================================================
+_PAGE_ORDER = ["LIVE", "ANALYSIS", "STATS", "NEWS", "PSICO"]
+
+
+def _page_index(p: str) -> int:
+    try:
+        return _PAGE_ORDER.index(p)
+    except Exception:
+        return 0
+
+
+def _bump_page_anim_if_changed(new_page: str):
+    old = st.session_state.get("prev_page", new_page)
+    if new_page != old:
+        st.session_state.page_anim_dir = "right" if _page_index(new_page) >= _page_index(old) else "left"
+        st.session_state.page_anim_token = int(st.session_state.get("page_anim_token", 0)) + 1
+        st.session_state.prev_page = new_page
+
+
+def page_anim_start():
+    # token para forzar “nuevo DOM” y que se ejecute la animación
+    tok = int(st.session_state.get("page_anim_token", 0))
+    direction = st.session_state.get("page_anim_dir", "right")
+    st.markdown(f"<div class='ts-page-anim {direction}' data-anim='{tok}'>", unsafe_allow_html=True)
+
+
+def page_anim_end():
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+# ==========================================================
 # VISUAL HELPERS (NO FUNCTIONAL CHANGES)
 # ==========================================================
 def ring(label: str, value: float, sub: str = "", color: str = "var(--accent)"):
     v = 0.0 if value is None else float(value)
     v = max(0.0, min(100.0, v))
-    p = v / 100.0
-    # SVG donut to allow smooth draw animation on mount
-    # r=24 => circ ≈ 150.8
+    deg = v * 3.6
     html = f"""
     <div class="ring-wrap">
-      <svg class="ringSvg" viewBox="0 0 64 64" style="--ringc:{color}; --p:{p}; --circ:150.796447372;">
-        <circle class="ringCenter" cx="32" cy="32" r="22"></circle>
-        <circle class="ringTrack" cx="32" cy="32" r="24" fill="none"></circle>
-        <circle class="ringProg"  cx="32" cy="32" r="24" fill="none"></circle>
-        <text class="ring-val" x="32" y="36" text-anchor="middle">{v:.0f}%</text>
-      </svg>
+      <div class="ring" style="--deg:{deg}deg; --ringc:{color};">
+        <div class="ring-val">{v:.0f}%</div>
+      </div>
       <div class="ring-txt">
         <div class="t1">{label}</div>
         <div class="t2">{sub}</div>
@@ -1242,31 +1295,26 @@ def icon_svg(kind: str):
 # AUTH UI
 # ==========================================================
 def auth_block():
-    # (8) Strong cover / identity first
-    name_hint = st.session_state.get("_login_user_hint", "") or "Jugador"
     st.markdown(
         f"""
-        <div class="hero">
-          <div class="heroBg"></div>
-          <div class="heroOverlay"></div>
-          <div class="heroShine"></div>
-          <div class="heroInner">
-            <div class="heroClaim">Track. Compete. Improve.</div>
-            <div class="heroSub">Tu partido, punto a punto. Tu progreso, partido a partido.</div>
-            <div class="heroName">🎾 {name_hint}</div>
+        <div class="ts-card pad">
+          <div class="ts-title">🎾 TennisStats</div>
+          <div class="ts-sub">Acceso privado por usuario · UI móvil · Win Prob Markov · Fondo animado</div>
+          <div class="ts-chiprow">
+            <div class="ts-chip"><span class="ts-dot"></span> Live tracking</div>
+            <div class="ts-chip"><span class="ts-dot" style="background: var(--accent2); box-shadow:0 0 0 3px rgba(96,165,250,.18);"></span> Markov Win Prob</div>
+            <div class="ts-chip"><span class="ts-dot" style="background: var(--warn); box-shadow:0 0 0 3px rgba(251,191,36,.18);"></span> Export / Import</div>
           </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
-    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
 
     users = load_users()
     tab_login, tab_register = st.tabs(["🔑 Entrar", "🆕 Crear usuario"])
 
     with tab_login:
         u = st.text_input("Usuario", value="", placeholder="Ej: ruben")
-        st.session_state._login_user_hint = (u.strip() or "Jugador")
         pin = st.text_input("PIN", value="", type="password", placeholder="4-12 dígitos")
         if st.button("Entrar", use_container_width=True):
             key = safe_user_key(u)
@@ -1338,22 +1386,6 @@ history: MatchHistory = st.session_state.history
 user_key = st.session_state.auth_key
 user_display = st.session_state.auth_user
 
-# (4) UI Mode selector (layout/CSS only)
-with st.sidebar:
-    st.markdown("### 🎾 TennisStats")
-    st.caption("Panel (en móvil puedes colapsarlo)")
-    st.markdown(f"**👤 Usuario:** `{user_display}`")
-    st.divider()
-    mode_label = "🏟️ Pista" if st.session_state.ui_mode == "Pista" else "🏠 Casa"
-    mode = st.segmented_control("Modo", options=["🏟️ Pista", "🏠 Casa"], default=mode_label, label_visibility="visible")
-    if mode:
-        st.session_state.ui_mode = "Pista" if "Pista" in mode else "Casa"
-    st.divider()
-
-# Apply UI mode class wrapper
-ui_cls = "ui-pista" if st.session_state.ui_mode == "Pista" else "ui-casa"
-st.markdown(f"<div class='{ui_cls}'>", unsafe_allow_html=True)
-
 # NAV (mismo contenido funcional)
 page_map = {"🎾": "LIVE", "📈": "ANALYSIS", "📊": "STATS", "📰": "NEWS", "🧠": "PSICO"}
 labels = list(page_map.keys())
@@ -1362,11 +1394,21 @@ nav = st.segmented_control(" ", options=labels, default=current_label, label_vis
 if nav and page_map.get(nav) != st.session_state.page:
     st.session_state.page = page_map[nav]
 
+# ✅ activar transiciones cuando cambia la página (solo visual)
+_bump_page_anim_if_changed(st.session_state.page)
+
 with st.sidebar:
+    st.markdown("### 🎾 TennisStats")
+    st.caption("Panel (en móvil puedes colapsarlo)")
+    st.markdown(f"**👤 Usuario:** `{user_display}`")
     full_map = {"🎾 LIVE": "LIVE", "📈 Analysis": "ANALYSIS", "📊 Stats": "STATS", "📰 Noticias": "NEWS", "🧠 Psico": "PSICO"}
     cur_full = next((k for k, v in full_map.items() if v == st.session_state.page), "🎾 LIVE")
     choice = st.radio("Página", list(full_map.keys()), index=list(full_map.keys()).index(cur_full))
     st.session_state.page = full_map[choice]
+
+    # ✅ por si el cambio viene del sidebar
+    _bump_page_anim_if_changed(st.session_state.page)
+
     st.divider()
     if st.button("🚪 Salir", use_container_width=True):
         st.session_state.authed = False
@@ -1381,14 +1423,6 @@ total_pts, won_pts, pct_pts = live.points_stats()
 p_point = live.estimate_point_win_prob()
 p_match = live.match_win_prob() * 100.0
 
-# (3) WinProb "latido" when big change (UI-only state)
-last_pm = st.session_state.get("_last_p_match", None)
-pulse = False
-if last_pm is not None and abs(p_match - float(last_pm)) >= 6.0:
-    pulse = True
-st.session_state._last_p_match = float(p_match)
-
-wp_cls = "pulseWinProb" if pulse else ""
 st.markdown(
     f"""
     <div class="ts-card pad">
@@ -1396,10 +1430,7 @@ st.markdown(
       <div class="ts-sub">UI épica (móvil) · Marcador live · Tendencias · Historial privado</div>
       <div class="ts-chiprow">
         <div class="ts-chip"><span class="ts-dot"></span> {user_display}</div>
-        <div class="ts-chip {wp_cls}">
-          <span class="ts-dot" style="background: var(--accent2); box-shadow:0 0 0 3px rgba(96,165,250,.18);"></span>
-          Win Prob <b>{p_match:.1f}%</b>
-        </div>
+        <div class="ts-chip"><span class="ts-dot" style="background: var(--accent2); box-shadow:0 0 0 3px rgba(96,165,250,.18);"></span> Win Prob <b>{p_match:.1f}%</b></div>
         <div class="ts-chip"><span class="ts-dot" style="background: var(--warn); box-shadow:0 0 0 3px rgba(251,191,36,.18);"></span> p(punto) <b>{p_point:.2f}</b></div>
         <div class="ts-chip"><span class="ts-dot" style="background: var(--danger); box-shadow:0 0 0 3px rgba(251,113,133,.18);"></span> Puntos <b>{won_pts}/{total_pts}</b></div>
       </div>
@@ -1419,7 +1450,12 @@ with top2:
 # PAGE: LIVE
 # ==========================================================
 if st.session_state.page == "LIVE":
+    page_anim_start()
+
     title_h("LIVE MATCH")
+
+    # ✅ NUEVO (solo UX): widget del tiempo en LIVE
+    weather_widget_card()
 
     st_ = live.state
     pts_label = f"TB {st_.pts_me}-{st_.pts_opp}" if st_.in_tiebreak else game_point_label(st_.pts_me, st_.pts_opp)
@@ -1441,38 +1477,22 @@ if st.session_state.page == "LIVE":
         score_pills(st_.sets_me, st_.sets_opp, st_.games_me, st_.games_opp, pts_label, live.surface)
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # (4) Modo Pista: menos info visible por defecto; Modo Casa: todo visible + gráficos
-    if st.session_state.ui_mode == "Casa":
-        c1, c2 = st.columns([1, 1], gap="small")
-        with c1:
-            court_svg(live.surface)
-        with c2:
-            last_points_timeline(live.points, n=18)
+    # Visual grid: pista + timeline + mini trend
+    c1, c2 = st.columns([1, 1], gap="small")
+    with c1:
+        court_svg(live.surface)
+    with c2:
+        last_points_timeline(live.points, n=18)
 
-        probs = live.win_prob_series()
-        st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
-        st.markdown(f"{icon_svg('bolt')} <b>Tendencia Win Probability</b>", unsafe_allow_html=True)
-        if len(probs) < 2:
-            small_note("Aún no hay suficientes puntos para la tendencia (mínimo 2).")
-        else:
-            st.line_chart(probs[-40:], height=170)
-        st.markdown("</div>", unsafe_allow_html=True)
+    # Mini tendencia WinProb (sin cambiar modelo; solo visual)
+    probs = live.win_prob_series()
+    st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
+    st.markdown(f"{icon_svg('bolt')} <b>Tendencia Win Probability</b>", unsafe_allow_html=True)
+    if len(probs) < 2:
+        small_note("Aún no hay suficientes puntos para la tendencia (mínimo 2).")
     else:
-        with st.expander("Detalles (pista / tendencia / últimos puntos)", expanded=False):
-            c1, c2 = st.columns([1, 1], gap="small")
-            with c1:
-                court_svg(live.surface)
-            with c2:
-                last_points_timeline(live.points, n=18)
-
-            probs = live.win_prob_series()
-            st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
-            st.markdown(f"{icon_svg('bolt')} <b>Tendencia Win Probability</b>", unsafe_allow_html=True)
-            if len(probs) < 2:
-                small_note("Aún no hay suficientes puntos para la tendencia (mínimo 2).")
-            else:
-                st.line_chart(probs[-40:], height=170)
-            st.markdown("</div>", unsafe_allow_html=True)
+        st.line_chart(probs[-40:], height=170)
+    st.markdown("</div>", unsafe_allow_html=True)
 
     # Registrar punto (funciones intactas)
     st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
@@ -1708,11 +1728,15 @@ if st.session_state.page == "LIVE":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
+    page_anim_end()
+
 
 # ==========================================================
 # PAGE: ANALYSIS
 # ==========================================================
 elif st.session_state.page == "ANALYSIS":
+    page_anim_start()
+
     title_h("Analysis")
 
     st.markdown("<div class='ts-card pad'>", unsafe_allow_html=True)
@@ -1732,7 +1756,7 @@ elif st.session_state.page == "ANALYSIS":
 
     st.markdown("<div class='ts-card pad'>", unsafe_allow_html=True)
     st.markdown(f"{icon_svg('shield')} <b>Puntos de presión (live)</b>", unsafe_allow_html=True)
-    small_note("En modo Pista, mantén esto como referencia rápida; en modo Casa lo puedes analizar con más calma.")
+    small_note(f"p(punto)≈{p_point:.2f} · Win Prob≈{p_match:.1f}%")
     pressure_total = sum(1 for p in live.points if p.get("pressure"))
     pressure_won = sum(1 for p in live.points if p.get("pressure") and p.get("result") == "win")
     pressure_pct = (pressure_won / pressure_total * 100.0) if pressure_total else 0.0
@@ -1740,11 +1764,15 @@ elif st.session_state.page == "ANALYSIS":
     st.write(f"**{pressure_won}/{pressure_total}** ganados ({pressure_pct:.0f}%) en deuce/tiebreak.")
     st.markdown("</div>", unsafe_allow_html=True)
 
+    page_anim_end()
+
 
 # ==========================================================
 # PAGE: STATS
 # ==========================================================
 elif st.session_state.page == "STATS":
+    page_anim_start()
+
     title_h("Stats")
 
     st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
@@ -1807,25 +1835,15 @@ elif st.session_state.page == "STATS":
         small_note("Aún no hay datos suficientes para mostrar el gráfico por superficies.")
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # (4) Modo Casa: cards más densas + comparativa visible (sin nuevas funciones)
-    if st.session_state.ui_mode == "Casa" and history.matches:
-        series = []
-        for m in history.matches[-40:]:
-            series.append(float(m.get("points_pct", 0) or 0))
-        st.markdown("<div class='ts-card pad'>", unsafe_allow_html=True)
-        st.subheader("Comparativa rápida", anchor=False)
-        small_note("Tendencia del % de puntos ganados en tus últimos partidos (hasta 40).")
-        if len(series) >= 2:
-            st.line_chart(series, height=200)
-        else:
-            small_note("Necesitas al menos 2 partidos guardados para ver tendencia.")
-        st.markdown("</div>", unsafe_allow_html=True)
+    page_anim_end()
 
 
 # ==========================================================
 # PAGE: NEWS
 # ==========================================================
 elif st.session_state.page == "NEWS":
+    page_anim_start()
+
     title_h("Noticias (tenis)")
     small_note("Últimas noticias desde fuentes públicas (RSS). Si alguna fuente falla, se muestra el resto.")
 
@@ -1855,11 +1873,15 @@ elif st.session_state.page == "NEWS":
                 st.markdown(f"- **[{title}]({link})**  \n  <span class='small-note'>{src}</span>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
+    page_anim_end()
+
 
 # ==========================================================
 # PAGE: PSICO
 # ==========================================================
 else:
+    page_anim_start()
+
     title_h("Psico")
     small_note("Material en PDF (visible y descargable).")
 
@@ -1902,5 +1924,4 @@ else:
                 st.components.v1.html(html, height=680, scrolling=False)
     st.markdown("</div>", unsafe_allow_html=True)
 
-# close ui wrapper
-st.markdown("</div>", unsafe_allow_html=True)
+    page_anim_end()
