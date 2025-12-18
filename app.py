@@ -16,7 +16,7 @@ import streamlit as st
 
 
 # ==========================================================
-# CONFIG + CSS (MOBILE PRO SPORT UI)
+# CONFIG + CSS (MOBILE PRO SPORT UI - MORE VISUAL)
 # ==========================================================
 st.set_page_config(page_title="TennisStats", page_icon="🎾", layout="centered")
 
@@ -63,8 +63,8 @@ html, body, [data-testid="stAppViewContainer"]{
 }
 
 .block-container{
-  padding-top: 0.8rem;
-  padding-bottom: 1.2rem;
+  padding-top: 0.75rem;
+  padding-bottom: 1.25rem;
   max-width: 980px;
 }
 
@@ -77,6 +77,7 @@ h1,h2,h3{ letter-spacing: .2px; }
 
 .small-note{ color: var(--muted); font-size: .92rem; line-height: 1.25rem; }
 .kpi{ font-size: 1.03rem; font-weight: 950; }
+.mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
 
 hr, [data-testid="stDivider"]{
   border-color: var(--stroke2) !important;
@@ -165,27 +166,6 @@ button[role="tab"][aria-selected="true"]{
   border: 1px solid rgba(22,163,74,.25) !important;
 }
 
-/* Metric cards */
-[data-testid="stMetric"]{
-  border: 1px solid var(--stroke);
-  border-radius: 18px;
-  background: linear-gradient(180deg, var(--card), var(--card2));
-  padding: 14px 14px 12px 14px;
-  box-shadow: var(--shadow2);
-  position: relative;
-  overflow: hidden;
-}
-[data-testid="stMetric"]::after{
-  content:"";
-  position:absolute;
-  top:-70px; right:-70px;
-  width: 220px; height: 220px;
-  background: radial-gradient(circle, rgba(22,163,74,.16), transparent 60%);
-}
-[data-testid="stMetricLabel"]{ color: var(--muted2) !important; font-weight: 900 !important; }
-[data-testid="stMetricValue"]{ color: var(--text) !important; font-weight: 1000 !important; }
-[data-testid="stMetricDelta"]{ color: rgba(22,163,74,0.95) !important; font-weight: 950 !important; }
-
 /* Alerts / uploader */
 [data-testid="stAlert"]{
   border-radius: 16px !important;
@@ -219,7 +199,7 @@ section[data-testid="stFileUploaderDropzone"]{
   transform: rotate(12deg);
 }
 .ts-title{
-  font-size: 1.20rem;
+  font-size: 1.18rem;
   font-weight: 1000;
   margin: 0;
 }
@@ -254,7 +234,7 @@ section[data-testid="stFileUploaderDropzone"]{
   box-shadow: 0 0 0 3px rgba(22,163,74,.16);
 }
 
-/* Mini cards for mobile */
+/* Cards */
 .ts-card{
   border: 1px solid var(--stroke);
   border-radius: 18px;
@@ -264,51 +244,50 @@ section[data-testid="stFileUploaderDropzone"]{
 }
 
 /* Donut rings */
-.ring-wrap{
-  display:flex;
-  gap: 12px;
-  align-items:center;
-}
+.ring-wrap{ display:flex; gap: 12px; align-items:center; }
 .ring{
-  width: 58px;
-  height: 58px;
-  border-radius: 999px;
-  background:
-    conic-gradient(var(--ringc) var(--deg), rgba(2,6,23,.08) 0);
-  position: relative;
-  box-shadow: 0 10px 18px rgba(2,6,23,.08);
+  width: 58px; height: 58px; border-radius: 999px;
+  background: conic-gradient(var(--ringc) var(--deg), rgba(2,6,23,.08) 0);
+  position: relative; box-shadow: 0 10px 18px rgba(2,6,23,.08);
 }
 .ring::after{
-  content:"";
-  position:absolute;
-  inset: 8px;
-  border-radius: 999px;
+  content:""; position:absolute; inset: 8px; border-radius: 999px;
   background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,255,255,0.86));
   border: 1px solid rgba(2,6,23,.06);
 }
 .ring-val{
-  position:absolute;
-  inset:0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight: 1000;
-  color: var(--text);
-  font-size: .92rem;
-  z-index: 2;
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-weight: 1000; color: var(--text); font-size: .92rem; z-index: 2;
 }
-.ring-txt .t1{
-  font-weight: 1000;
-  line-height: 1.05rem;
-}
-.ring-txt .t2{
-  color: var(--muted);
-  font-weight: 800;
-  font-size: .88rem;
-  margin-top: 2px;
-}
+.ring-txt .t1{ font-weight: 1000; line-height: 1.05rem; }
+.ring-txt .t2{ color: var(--muted); font-weight: 800; font-size: .88rem; margin-top: 2px; }
 
-/* Segmented nav (mobile-friendly) */
+/* Score pills */
+.pills{ display:flex; gap: 8px; flex-wrap:wrap; margin-top:8px; }
+.pill{
+  display:inline-flex; align-items:center; gap:8px;
+  padding: 7px 10px; border-radius: 999px;
+  border: 1px solid var(--stroke);
+  background: rgba(255,255,255,0.70);
+  font-weight: 950; font-size:.90rem;
+}
+.pill b{ font-weight:1000; }
+
+/* Last points timeline */
+.lp{
+  display:flex; gap:6px; flex-wrap:wrap;
+  margin-top:10px;
+}
+.dot{
+  width: 14px; height: 14px; border-radius: 999px;
+  border: 1px solid rgba(2,6,23,.14);
+  box-shadow: 0 6px 12px rgba(2,6,23,.08);
+}
+.dot.win{ background: rgba(22,163,74,.95); }
+.dot.lose{ background: rgba(220,38,38,.90); }
+.dot.pressure{ outline: 3px solid rgba(245,158,11,.22); }
+
+/* Segmented nav */
 div[data-testid="stSegmentedControl"] > div{
   border-radius: 16px !important;
   border: 1px solid var(--stroke) !important;
@@ -316,9 +295,8 @@ div[data-testid="stSegmentedControl"] > div{
   box-shadow: var(--shadow2) !important;
   padding: 6px !important;
 }
-div[data-testid="stSegmentedControl"] label{
-  font-weight: 950 !important;
-}
+div[data-testid="stSegmentedControl"] label{ font-weight: 950 !important; }
+
 </style>
 """
 st.markdown(PRO_CSS, unsafe_allow_html=True)
@@ -433,10 +411,7 @@ def fetch_tennis_news(max_items: int = 15):
     items = []
     for source_name, url in NEWS_SOURCES:
         try:
-            req = urllib.request.Request(
-                url,
-                headers={"User-Agent": "Mozilla/5.0 (Streamlit TennisStats)"},
-            )
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Streamlit TennisStats)"})
             with urllib.request.urlopen(req, timeout=8) as resp:
                 data = resp.read()
 
@@ -456,10 +431,7 @@ def fetch_tennis_news(max_items: int = 15):
                 for entry in root.findall("a:entry", ns):
                     title = _first_text(entry, ["{http://www.w3.org/2005/Atom}title"])
                     link = _attr(entry, "{http://www.w3.org/2005/Atom}link", "href")
-                    pub = _first_text(
-                        entry,
-                        ["{http://www.w3.org/2005/Atom}updated", "{http://www.w3.org/2005/Atom}published"],
-                    )
+                    pub = _first_text(entry, ["{http://www.w3.org/2005/Atom}updated", "{http://www.w3.org/2005/Atom}published"])
                     if title and link:
                         items.append({"source": source_name, "title": title, "link": link, "published": pub})
         except Exception:
@@ -648,13 +620,7 @@ class LiveMatch:
         p = self.estimate_point_win_prob()
         p_r = round(p, 3)
         st_ = self.state
-        return _prob_match_bo3(
-            p_r,
-            st_.sets_me, st_.sets_opp,
-            st_.games_me, st_.games_opp,
-            st_.pts_me, st_.pts_opp,
-            st_.in_tiebreak
-        )
+        return _prob_match_bo3(p_r, st_.sets_me, st_.sets_opp, st_.games_me, st_.games_opp, st_.pts_me, st_.pts_opp, st_.in_tiebreak)
 
     def win_prob_series(self):
         probs = []
@@ -709,14 +675,7 @@ class LiveMatch:
         set_idx = before.sets_me + before.sets_opp + 1
         is_pressure = bool(before.in_tiebreak or (before.pts_me >= 3 and before.pts_opp >= 3))
 
-        self.points.append({
-            "result": result,
-            **meta,
-            "surface": self.surface,
-            "before": before.__dict__,
-            "set_idx": set_idx,
-            "pressure": is_pressure,
-        })
+        self.points.append({"result": result, **meta, "surface": self.surface, "before": before.__dict__, "set_idx": set_idx, "pressure": is_pressure})
 
         if result == "win":
             self.state.pts_me += 1
@@ -763,11 +722,7 @@ class LiveMatch:
         won = sum(1 for p in self.points if p["result"] == "win")
         pct = (won / total * 100.0) if total else 0.0
 
-        finishes = {
-            "winner": 0, "unforced": 0, "forced": 0, "ace": 0,
-            "double_fault": 0, "opp_error": 0, "opp_winner": 0
-        }
-
+        finishes = {"winner": 0, "unforced": 0, "forced": 0, "ace": 0, "double_fault": 0, "opp_error": 0, "opp_winner": 0}
         pressure_total = sum(1 for p in self.points if p.get("pressure"))
         pressure_won = sum(1 for p in self.points if p.get("pressure") and p.get("result") == "win")
 
@@ -998,9 +953,9 @@ def title_h(txt: str):
 
 
 # ==========================================================
-# UI HELPERS (RINGS / CARDS)  -> SOLO VISUAL
+# VISUAL HELPERS (NO FUNCTIONAL CHANGES)
 # ==========================================================
-def _ring(label: str, value: float, sub: str = "", color: str = "var(--accent)"):
+def ring(label: str, value: float, sub: str = "", color: str = "var(--accent)"):
     v = 0.0 if value is None else float(value)
     v = max(0.0, min(100.0, v))
     deg = v * 3.6
@@ -1020,16 +975,103 @@ def _ring(label: str, value: float, sub: str = "", color: str = "var(--accent)")
     st.components.v1.html(html, height=92)
 
 
-def _mini_card(title: str, body: str):
+def mini_card(title: str, body_html: str):
     st.markdown(
         f"""
         <div class="ts-card">
           <div style="font-weight:1000; margin-bottom:4px;">{title}</div>
-          <div class="small-note">{body}</div>
+          <div class="small-note">{body_html}</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
+
+
+def score_pills(sets_me, sets_opp, games_me, games_opp, pts_label, surface):
+    html = f"""
+    <div class="pills">
+      <div class="pill">🧱 <b>{surface}</b></div>
+      <div class="pill">🎾 Sets <b>{sets_me}-{sets_opp}</b></div>
+      <div class="pill">🧾 Juegos <b>{games_me}-{games_opp}</b></div>
+      <div class="pill">🔢 Puntos <b>{pts_label}</b></div>
+    </div>
+    """
+    st.markdown(html, unsafe_allow_html=True)
+
+
+def last_points_timeline(points, n=18):
+    arr = points[-n:] if points else []
+    dots = []
+    for p in arr:
+        cls = "win" if p.get("result") == "win" else "lose"
+        if p.get("pressure"):
+            cls += " pressure"
+        dots.append(f"<span class='dot {cls}' title='{p.get('result','')}'></span>")
+    html = f"""
+    <div class="ts-card">
+      <div style="font-weight:1000;">Últimos puntos</div>
+      <div class="small-note">Verde=ganado · Rojo=perdido · Borde=presión</div>
+      <div class="lp">{''.join(dots) if dots else "<span class='small-note'>Aún no hay puntos.</span>"}</div>
+    </div>
+    """
+    st.markdown(html, unsafe_allow_html=True)
+
+
+def court_svg(surface: str):
+    # simple decorative court (no input)
+    surf_color = {
+        "Tierra batida": "#c2410c",
+        "Pista rápida": "#1d4ed8",
+        "Hierba": "#16a34a",
+        "Indoor": "#334155",
+    }.get(surface, "#1d4ed8")
+    html = f"""
+    <div class="ts-card" style="padding:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-weight:1000;">Vista rápida</div>
+        <div class="small-note">Pista (decorativa)</div>
+      </div>
+      <svg viewBox="0 0 400 210" width="100%" height="150" style="margin-top:8px; border-radius:16px; overflow:hidden;">
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="{surf_color}" stop-opacity="0.92"/>
+            <stop offset="1" stop-color="{surf_color}" stop-opacity="0.75"/>
+          </linearGradient>
+          <pattern id="grain" width="6" height="6" patternUnits="userSpaceOnUse">
+            <circle cx="1" cy="2" r="0.6" fill="rgba(255,255,255,0.10)"/>
+            <circle cx="4" cy="5" r="0.6" fill="rgba(0,0,0,0.10)"/>
+          </pattern>
+        </defs>
+        <rect x="0" y="0" width="400" height="210" fill="url(#g)"/>
+        <rect x="0" y="0" width="400" height="210" fill="url(#grain)" opacity="0.55"/>
+        <rect x="20" y="15" width="360" height="180" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="3"/>
+        <line x1="200" y1="15" x2="200" y2="195" stroke="rgba(255,255,255,0.75)" stroke-width="3"/>
+        <rect x="60" y="45" width="280" height="120" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="3"/>
+        <line x1="60" y1="105" x2="340" y2="105" stroke="rgba(255,255,255,0.75)" stroke-width="3"/>
+        <circle cx="200" cy="105" r="5" fill="rgba(255,255,255,0.85)"/>
+      </svg>
+    </div>
+    """
+    st.components.v1.html(html, height=230)
+
+
+def finish_bar_current_match(live_match: LiveMatch):
+    # purely visual, derived from current live points
+    counts = {k: 0 for k, _ in FINISH_ITEMS}
+    for p in live_match.points:
+        f = p.get("finish")
+        if f in counts:
+            counts[f] += 1
+    total = sum(counts.values())
+    if total <= 0:
+        return
+    labels = [lbl for _, lbl in FINISH_ITEMS]
+    values = [counts[k] for k, _ in FINISH_ITEMS]
+    st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
+    st.subheader("Finish (partido actual)", anchor=False)
+    small_note("Distribución de finishes registrados en este partido.")
+    st.bar_chart({labels[i]: values[i] for i in range(len(labels))}, height=240)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ==========================================================
@@ -1040,11 +1082,11 @@ def auth_block():
         """
         <div class="ts-header">
           <div class="ts-title">🎾 TennisStats</div>
-          <div class="ts-sub">Acceso privado por usuario. Cada jugador ve su propio historial.</div>
+          <div class="ts-sub">Acceso privado por usuario. Interfaz optimizada para móvil.</div>
           <div class="ts-badges">
             <div class="ts-badge"><span class="ts-dot"></span> Live tracking</div>
             <div class="ts-badge"><span class="ts-dot" style="background: var(--accent2); box-shadow:0 0 0 3px rgba(37,99,235,.14);"></span> Markov Win Prob</div>
-            <div class="ts-badge"><span class="ts-dot" style="background: var(--warn); box-shadow:0 0 0 3px rgba(245,158,11,.14);"></span> Historial exportable</div>
+            <div class="ts-badge"><span class="ts-dot" style="background: var(--warn); box-shadow:0 0 0 3px rgba(245,158,11,.14);"></span> Export / Import</div>
           </div>
         </div>
         """,
@@ -1128,39 +1170,19 @@ history: MatchHistory = st.session_state.history
 user_key = st.session_state.auth_key
 user_display = st.session_state.auth_user
 
-# ==========================================================
-# NAV (MOBILE-FIRST): segmented control arriba + sidebar opcional
-# ==========================================================
-page_map = {
-    "🎾": "LIVE",
-    "📈": "ANALYSIS",
-    "📊": "STATS",
-    "📰": "NEWS",
-    "🧠": "PSICO",
-}
+# NAV
+page_map = {"🎾": "LIVE", "📈": "ANALYSIS", "📊": "STATS", "📰": "NEWS", "🧠": "PSICO"}
 labels = list(page_map.keys())
 current_label = next((k for k, v in page_map.items() if v == st.session_state.page), "🎾")
-
-nav = st.segmented_control(
-    " ",
-    options=labels,
-    default=current_label,
-    label_visibility="collapsed",
-)
+nav = st.segmented_control(" ", options=labels, default=current_label, label_visibility="collapsed")
 if nav and page_map.get(nav) != st.session_state.page:
     st.session_state.page = page_map[nav]
 
 with st.sidebar:
     st.markdown("### 🎾 TennisStats")
-    st.caption("Panel (móvil: se puede colapsar)")
+    st.caption("Panel (en móvil puedes colapsarlo)")
     st.markdown(f"**👤 Usuario:** `{user_display}`")
-    full_map = {
-        "🎾 LIVE": "LIVE",
-        "📈 Analysis": "ANALYSIS",
-        "📊 Stats": "STATS",
-        "📰 Noticias": "NEWS",
-        "🧠 Psico": "PSICO",
-    }
+    full_map = {"🎾 LIVE": "LIVE", "📈 Analysis": "ANALYSIS", "📊 Stats": "STATS", "📰 Noticias": "NEWS", "🧠 Psico": "PSICO"}
     cur_full = next((k for k, v in full_map.items() if v == st.session_state.page), "🎾 LIVE")
     choice = st.radio("Página", list(full_map.keys()), index=list(full_map.keys()).index(cur_full))
     st.session_state.page = full_map[choice]
@@ -1173,9 +1195,7 @@ with st.sidebar:
         st.session_state.finish = None
         st.rerun()
 
-# ==========================================================
-# TOP DASHBOARD (rings + quick cards)
-# ==========================================================
+# TOP DASHBOARD (visual)
 total_pts, won_pts, pct_pts = live.points_stats()
 p_point = live.estimate_point_win_prob()
 p_match = live.match_win_prob() * 100.0
@@ -1183,24 +1203,23 @@ p_match = live.match_win_prob() * 100.0
 st.markdown(
     f"""
     <div class="ts-header">
-      <div class="ts-title">🎾 Session Dashboard</div>
-      <div class="ts-sub">Interfaz optimizada para móvil: registro rápido + lectura visual (anillos y tarjetas).</div>
+      <div class="ts-title">🎾 Dashboard</div>
+      <div class="ts-sub">Intuitivo y visual para uso en móvil: anillos, timeline de puntos y pistas.</div>
       <div class="ts-badges">
-        <div class="ts-badge"><span class="ts-dot"></span> Usuario: {user_display}</div>
-        <div class="ts-badge"><span class="ts-dot" style="background: var(--accent2); box-shadow:0 0 0 3px rgba(37,99,235,.14);"></span> Win Prob: {p_match:.1f}%</div>
-        <div class="ts-badge"><span class="ts-dot" style="background: var(--warn); box-shadow:0 0 0 3px rgba(245,158,11,.14);"></span> p(punto): {p_point:.2f}</div>
+        <div class="ts-badge"><span class="ts-dot"></span> {user_display}</div>
+        <div class="ts-badge"><span class="ts-dot" style="background: var(--accent2); box-shadow:0 0 0 3px rgba(37,99,235,.14);"></span> Win Prob {p_match:.1f}%</div>
+        <div class="ts-badge"><span class="ts-dot" style="background: var(--warn); box-shadow:0 0 0 3px rgba(245,158,11,.14);"></span> p(punto) {p_point:.2f}</div>
       </div>
     </div>
     """,
     unsafe_allow_html=True,
 )
-st.caption("")
 
 top1, top2 = st.columns(2, gap="small")
 with top1:
-    _ring("Puntos ganados", pct_pts, f"{won_pts}/{total_pts}", "var(--accent)")
+    ring("Puntos ganados", pct_pts, f"{won_pts}/{total_pts}", "var(--accent)")
 with top2:
-    _ring("Prob. victoria", p_match, "Modelo Markov", "var(--accent2)")
+    ring("Prob. victoria", p_match, "Modelo Markov", "var(--accent2)")
 
 
 # ==========================================================
@@ -1209,33 +1228,30 @@ with top2:
 if st.session_state.page == "LIVE":
     title_h("LIVE MATCH")
 
-    # Contexto + Marcador (compacto)
-    st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
-    colA, colB = st.columns([1.05, 0.95], gap="small")
-    with colA:
-        live.surface = st.selectbox("Superficie", SURFACES, index=SURFACES.index(live.surface))
-    with colB:
-        st.markdown(f"<div class='kpi'>🎯 Puntos: {total_pts} · {pct_pts:.0f}% ganados</div>", unsafe_allow_html=True)
-
     st_ = live.state
     pts_label = f"TB {st_.pts_me}-{st_.pts_opp}" if st_.in_tiebreak else game_point_label(st_.pts_me, st_.pts_opp)
-    st.markdown(
-        f"""
-        <div style="margin-top:10px; font-weight:1000;">
-          🧾 Sets {st_.sets_me}-{st_.sets_opp} · Juegos {st_.games_me}-{st_.games_opp} · Puntos {pts_label}
-        </div>
-        <div class="small-note" style="margin-top:6px;">
-          Modelo: p(punto)≈{p_point:.2f} · Win Prob≈{p_match:.1f}% · Presión = deuce/tiebreak
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+
+    # Contexto arriba: superficie + marcador visual
+    st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
+    a, b = st.columns([1.05, 0.95], gap="small")
+    with a:
+        live.surface = st.selectbox("Superficie", SURFACES, index=SURFACES.index(live.surface))
+        small_note("Tip: usa el panel lateral para cambiar de página rápido.")
+    with b:
+        mini_card("Estado del partido", f"<span class='mono'>Sets {st_.sets_me}-{st_.sets_opp} · Juegos {st_.games_me}-{st_.games_opp} · Puntos {pts_label}</span><br/>Win Prob <b>{p_match:.1f}%</b>")
+    score_pills(st_.sets_me, st_.sets_opp, st_.games_me, st_.games_opp, pts_label, live.surface)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Botones de punto + manual (mantiene funciones)
-    st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
-    st.subheader("Punto", anchor=False)
+    # Pista decorativa + timeline de puntos
+    cL, cR = st.columns([1, 1], gap="small")
+    with cL:
+        court_svg(live.surface)
+    with cR:
+        last_points_timeline(live.points, n=18)
 
+    # Botones principales (mismo comportamiento)
+    st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
+    st.subheader("Registrar punto", anchor=False)
     c1, c2 = st.columns(2, gap="small")
     with c1:
         if st.button("🟩 Punto Yo", use_container_width=True):
@@ -1247,7 +1263,11 @@ if st.session_state.page == "LIVE":
             live.add_point("lose", {"finish": st.session_state.finish})
             st.session_state.finish = None
             st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
+    # Acciones manuales
+    st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
+    st.subheader("Acciones manuales", anchor=False)
     c3, c4 = st.columns(2, gap="small")
     with c3:
         if st.button("➕ Juego Yo", use_container_width=True):
@@ -1265,11 +1285,10 @@ if st.session_state.page == "LIVE":
             st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Finish (opcional) – visualmente como “toggles” pero misma lógica
+    # Finish selector (igual lógica)
     st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
     st.subheader("Finish (opcional)", anchor=False)
     small_note("Selecciona 1 (se aplica al siguiente punto). Puedes deseleccionar tocando de nuevo.")
-
     fcols = st.columns(2, gap="small")
     for i, (key, label) in enumerate(FINISH_ITEMS):
         with fcols[i % 2]:
@@ -1288,7 +1307,10 @@ if st.session_state.page == "LIVE":
         small_note(f"Seleccionado: **{st.session_state.finish or '—'}**")
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Acciones + finalizar
+    # Visual extra: finishes del partido actual (solo si hay datos)
+    finish_bar_current_match(live)
+
+    # Acciones rápidas + finalizar (misma funcionalidad)
     st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
     st.subheader("Acciones", anchor=False)
     a1, a2, a3 = st.columns(3, gap="small")
@@ -1311,7 +1333,6 @@ if st.session_state.page == "LIVE":
             sl = st.number_input("Sets Rival", 0, 5, value=int(live.state.sets_opp), step=1)
             gw = st.number_input("Juegos Yo", 0, 50, value=int(live.state.games_me), step=1)
             gl = st.number_input("Juegos Rival", 0, 50, value=int(live.state.games_opp), step=1)
-
             surf_save = st.selectbox("Superficie (guardar)", SURFACES, index=SURFACES.index(live.surface))
 
             s_left, s_right = st.columns(2, gap="small")
@@ -1333,7 +1354,6 @@ if st.session_state.page == "LIVE":
                         "surface": surf_save,
                         **report,
                     })
-
                     save_history_to_disk(user_key, history.matches)
 
                     live.surface = surf_save
@@ -1344,7 +1364,7 @@ if st.session_state.page == "LIVE":
                     st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Exportar / historial (mismo contenido, más legible)
+    # Historial + export/import (mismo)
     st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
     st.subheader("Historial y exportación", anchor=False)
     small_note("Tu historial privado (solo tu usuario). Puedes editar/borrar y exportar/importar en JSON.")
@@ -1352,18 +1372,17 @@ if st.session_state.page == "LIVE":
     if not history.matches:
         st.info("Aún no hay partidos guardados.")
     else:
-        # mini resumen rápido
         last10 = history.filtered_matches(n=10, surface=None)
         w10 = sum(1 for m in last10 if m.get("won_match"))
         t10 = len(last10)
         pct10 = (w10 / t10 * 100.0) if t10 else 0.0
 
-        r1, r2 = st.columns(2, gap="small")
-        with r1:
-            _ring("Últimos 10", pct10, f"{w10}/{t10} victorias", "var(--accent)")
-        with r2:
+        x1, x2 = st.columns(2, gap="small")
+        with x1:
+            ring("Últimos 10", pct10, f"{w10}/{t10} victorias", "var(--accent)")
+        with x2:
             best_all = history.best_streak(surface=None)
-            _mini_card("🔥 Mejor racha", f"<b>{best_all}</b> victorias seguidas")
+            mini_card("🔥 Mejor racha", f"<b>{best_all}</b> victorias seguidas")
 
         matches = list(reversed(history.matches))
         for idx, m in enumerate(matches):
@@ -1492,14 +1511,13 @@ elif st.session_state.page == "ANALYSIS":
     small_note("Modelo: Markov (punto→juego→set→BO3). p(punto) se estima con tus puntos del partido.")
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Gráfica + resumen visual
     probs = live.win_prob_series()
     st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
     st.subheader("Evolución Win Prob", anchor=False)
     if len(probs) < 2:
         st.info("Aún no hay suficientes puntos para dibujar la gráfica (mínimo 2).")
     else:
-        st.line_chart(probs, height=280)
+        st.area_chart(probs, height=280)
     st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
@@ -1510,9 +1528,9 @@ elif st.session_state.page == "ANALYSIS":
 
     a, b = st.columns(2, gap="small")
     with a:
-        _ring("Presión", pressure_pct, f"{pressure_won}/{pressure_total} ganados", "var(--warn)")
+        ring("Presión", pressure_pct, f"{pressure_won}/{pressure_total} ganados", "var(--warn)")
     with b:
-        _mini_card("Qué cuenta como presión", "Deuce (40-40 o ventajas) y tiebreak.")
+        last_points_timeline(live.points, n=12)
     st.write(f"**{pressure_won}/{pressure_total}** ganados ({pressure_pct:.0f}%) en deuce/tiebreak.")
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -1529,21 +1547,20 @@ elif st.session_state.page == "STATS":
         n_choice = st.selectbox("Rango", ["Últ. 10", "Últ. 30", "Todos"], index=0)
     with colF2:
         surf_filter = st.selectbox("Superficie", ["Todas", *SURFACES], index=0)
-
     n = 10 if n_choice == "Últ. 10" else (30 if n_choice == "Últ. 30" else None)
     agg = history.aggregate(n=n, surface=surf_filter)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Anillos principales (más intuitivo en móvil)
+    # Visual principal: 3 anillos
     c1, c2, c3 = st.columns(3, gap="small")
     with c1:
-        _ring("Partidos", agg["matches_pct"], f"{agg['matches_win']} / {agg['matches_total']}", "var(--accent)")
+        ring("Partidos", agg["matches_pct"], f"{agg['matches_win']} / {agg['matches_total']}", "var(--accent)")
     with c2:
-        _ring("Sets", agg["sets_pct"], f"{agg['sets_w']} / {agg['sets_w'] + agg['sets_l']}", "var(--accent2)")
+        ring("Sets", agg["sets_pct"], f"{agg['sets_w']} / {agg['sets_w'] + agg['sets_l']}", "var(--accent2)")
     with c3:
-        _ring("Juegos", agg["games_pct"], f"{agg['games_w']} / {agg['games_w'] + agg['games_l']}", "var(--warn)")
+        ring("Juegos", agg["games_pct"], f"{agg['games_w']} / {agg['games_w'] + agg['games_l']}", "var(--warn)")
 
-    # Resumen + “panel de finish”
+    # Resumen + finishes
     st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
     st.subheader("Resumen", anchor=False)
     st.write(
@@ -1557,7 +1574,7 @@ elif st.session_state.page == "STATS":
     )
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Racha + mejor racha
+    # Rachas (visual)
     st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
     st.subheader("Rachas", anchor=False)
     results = history.last_n_results(10, surface=(None if surf_filter == "Todas" else surf_filter))
@@ -1566,7 +1583,6 @@ elif st.session_state.page == "STATS":
     else:
         row = ["✅ W" if r == "W" else "⬛ L" for r in results]
         st.write(" · ".join(row))
-
     best = history.best_streak(surface=(None if surf_filter == "Todas" else surf_filter))
     st.write(f"**🔥 Mejor racha:** {best} victorias seguidas")
     st.markdown("</div>", unsafe_allow_html=True)
@@ -1575,27 +1591,41 @@ elif st.session_state.page == "STATS":
     st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
     st.subheader("Superficies", anchor=False)
     surf = agg["surfaces"]
-
-    # listado
     for srf in SURFACES:
         w = surf.get(srf, {}).get("w", 0)
         t_ = surf.get(srf, {}).get("t", 0)
         pct = (w / t_ * 100.0) if t_ else 0.0
         st.write(f"**{srf}:** {pct:.0f}%  ({w} de {t_})")
 
-    # gráfico simple (sin tocar datos)
     chart_data = {}
     for srf in SURFACES:
         w = surf.get(srf, {}).get("w", 0)
         t_ = surf.get(srf, {}).get("t", 0)
-        pct = (w / t_ * 100.0) if t_ else 0.0
-        chart_data[srf] = pct
+        chart_data[srf] = (w / t_ * 100.0) if t_ else 0.0
 
     if any(v > 0 for v in chart_data.values()):
         st.bar_chart(chart_data, height=260)
     else:
         small_note("Aún no hay datos suficientes para mostrar el gráfico por superficies.")
     st.markdown("</div>", unsafe_allow_html=True)
+
+    # Extra visual: evolución de resultados por fecha (si hay)
+    if history.matches:
+        try:
+            st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
+            st.subheader("Evolución (historial)", anchor=False)
+            # serie: 1 si victoria, 0 si derrota; con etiqueta por fecha (simple)
+            series = []
+            for m in history.matches[-30:]:
+                series.append(100.0 if m.get("won_match") else 0.0)
+            if len(series) >= 2:
+                st.line_chart(series, height=220)
+                small_note("Serie: 100=Victoria, 0=Derrota (últimos 30).")
+            else:
+                small_note("Añade más partidos para ver evolución.")
+            st.markdown("</div>", unsafe_allow_html=True)
+        except Exception:
+            pass
 
 
 # ==========================================================
@@ -1613,7 +1643,6 @@ elif st.session_state.page == "NEWS":
         if st.button("🔄 Actualizar", use_container_width=True):
             fetch_tennis_news.clear()
             st.rerun()
-
     news = fetch_tennis_news(max_items=int(max_items))
     st.markdown("</div>", unsafe_allow_html=True)
 
