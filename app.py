@@ -22,11 +22,15 @@ st.set_page_config(page_title="TennisStats", page_icon="🎾", layout="centered"
 
 def _read_gif_data_uri():
     """
-    Optional: if you place a GIF at assets/tennis_bg.gif or tennis_bg.gif,
-    it will be embedded safely as a base64 data URI (no external URLs).
-    If not found, returns "" and we fallback to premium gradient background.
+    Busca primero el GIF definitivo (tennis_ball_slowmo.gif).
+    Fallback: tennis_bg.gif (por compatibilidad).
     """
-    candidates = [Path("assets/tennis_bg.gif"), Path("tennis_bg.gif")]
+    candidates = [
+        Path("assets/tennis_ball_slowmo.gif"),
+        Path("assets/tennis_bg.gif"),
+        Path("tennis_ball_slowmo.gif"),
+        Path("tennis_bg.gif"),
+    ]
     for p in candidates:
         try:
             if p.exists() and p.is_file():
@@ -1763,3 +1767,4 @@ else:
                 """
                 st.components.v1.html(html, height=680, scrolling=False)
     st.markdown("</div>", unsafe_allow_html=True)
+
