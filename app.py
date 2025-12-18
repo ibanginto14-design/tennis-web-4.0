@@ -44,29 +44,24 @@ def _read_gif_data_uri():
 
 
 BG_GIF = _read_gif_data_uri()
-
-PRO_CSS = f"""
-<style>
-:root{{
-  --bg:#070a12;
-  --bg2:#0b1222;
-  --card: rgba(255,255,255,0.07);
-  --card2: rgba(255,255,255,0.09);
-  --text: rgba(255,255,255,0.95);
-  --muted: rgba(255,255,255,0.72);
-  --muted2: rgba(255,255,255,0.62);
-  --stroke: rgba(255,255,255,0.14);
-  --stroke2: rgba(255,255,255,0.10);
-  --accent:#22c55e;       /* green */
-  --accent2:#60a5fa;      /* blue */
-  --danger:#fb7185;       /* pink/red */
-  --warn:#fbbf24;         /* amber */
-  --radius: 18px;
-  --radius2: 22px;
-  --shadow: 0 22px 60px rgba(0,0,0,.45);
-  --shadow2: 0 14px 34px rgba(0,0,0,.38);
-  --focus: 0 0 0 3px rgba(96,165,250,.22);
+GIF_CSS = ""
+if BG_GIF:
+    GIF_CSS = f"""
+/* Tennis GIF background layer */
+[data-testid="stAppViewContainer"]::after{{
+  content:"";
+  position: fixed;
+  inset: -12%;
+  background-image: url("{BG_GIF}");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.14; /* ajusta 0.10-0.20 */
+  filter: saturate(1.10) contrast(1.08);
+  pointer-events: none;
+  z-index: 0;
 }}
+"""
 
 *{{ -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }}
 html, body, [data-testid="stAppViewContainer"]{{
@@ -1763,4 +1758,5 @@ else:
                 """
                 st.components.v1.html(html, height=680, scrolling=False)
     st.markdown("</div>", unsafe_allow_html=True)
+
 
