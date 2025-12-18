@@ -5,7 +5,6 @@ import base64
 import secrets
 import hashlib
 import urllib.request
-import urllib.parse
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from dataclasses import dataclass
@@ -46,6 +45,8 @@ def _read_gif_data_uri():
 
 BG_GIF = _read_gif_data_uri()
 
+# ✅ FIX: el bloque CSS con el GIF tenía llaves { } sin escapar dentro de un f-string,
+# y Python lo interpretaba como expresión (NameError en `content:"";`).
 BG_LAYER = ""
 if BG_GIF:
     BG_LAYER = f"""
@@ -319,31 +320,19 @@ div[data-testid="stSegmentedControl"] label[data-selected="true"]{{
   border: 1px solid rgba(255,255,255,0.10) !important;
 }}
 
-/* ======================================================
-   PAGE TRANSITIONS (slide suave entre páginas)
-   - Sin marear: duración corta + easing suave
-   ====================================================== */
-@keyframes tsSlideInRight {{
-  from {{ opacity: 0; transform: translate3d(12px, 0, 0); }}
-  to   {{ opacity: 1; transform: translate3d(0, 0, 0); }}
-}}
-@keyframes tsSlideInLeft {{
-  from {{ opacity: 0; transform: translate3d(-12px, 0, 0); }}
-  to   {{ opacity: 1; transform: translate3d(0, 0, 0); }}
+/* ==========================================================
+   NEW: Smooth slide animation between sections (no new logic)
+   ========================================================== */
+@keyframes tsSlideIn {{
+  from {{ opacity: 0; transform: translateX(18px); }}
+  to   {{ opacity: 1; transform: translateX(0); }}
 }}
 .ts-page-anim {{
+  animation: tsSlideIn .22s ease-out;
   will-change: transform, opacity;
-  animation-duration: .18s;
-  animation-timing-function: ease-out;
-  animation-fill-mode: both;
 }}
-.ts-page-anim.right {{ animation-name: tsSlideInRight; }}
-.ts-page-anim.left  {{ animation-name: tsSlideInLeft;  }}
-
 @media (prefers-reduced-motion: reduce) {{
-  .ts-page-anim, .ts-page-anim.right, .ts-page-anim.left {{
-    animation: none !important;
-  }}
+  .ts-page-anim {{ animation: none !important; }}
 }}
 </style>
 """
@@ -497,62 +486,103 @@ def fetch_tennis_news(max_items: int = 15):
 
 
 # ==========================================================
-# WIDGET TIEMPO (LIVE) - Open-Meteo (sin API key)
+# WEATHER (Open-Meteo) — NEW: widget en LIVE (no afecta a tenis)
 # ==========================================================
 @st.cache_data(ttl=1800, show_spinner=False)
-def fetch_weather_open_meteo(lat: float, lon: float, tz: str = "Europe/Madrid") -> dict:
+def fetch_weather_openmeteo(lat: float, lon: float):
+    # Daily + hourly + current (free, no key)
+    url = (
+        "https://api.open-meteo.com/v1/forecast"
+        f"?latitude={lat}&longitude={lon}"
+        "&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,wind_speed_10m"
+        "&hourly=temperature_2m,precipitation_probability,precipitation,wind_speed_10m"
+        "&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max"
+        "&timezone=auto"
+    )
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Streamlit TennisStats)"})
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        raw = resp.read().decode("utf-8")
+    return json.loads(raw)
+
+
+def render_weather_widget():
+    # Donostia / San Sebastián (por defecto; solo UI)
+    lat, lon = 43.3183, -1.9812
     try:
-        params = {
-            "latitude": f"{lat:.4f}",
-            "longitude": f"{lon:.4f}",
-            "current_weather": "true",
-            "timezone": tz,
-        }
-        url = "https://api.open-meteo.com/v1/forecast?" + urllib.parse.urlencode(params)
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Streamlit TennisStats)"})
-        with urllib.request.urlopen(req, timeout=8) as resp:
-            raw = resp.read().decode("utf-8")
-        return json.loads(raw)
-    except Exception:
-        return {}
-
-
-def weather_widget_card():
-    # Por defecto Donostia (puedes cambiar coords si quieres)
-    lat, lon = 43.3224, -1.9839  # Donostia-San Sebastián
-    obj = fetch_weather_open_meteo(lat, lon, tz="Europe/Madrid")
-    cw = (obj or {}).get("current_weather") or {}
-    if not cw:
-        st.markdown(
-            "<div class='ts-card'><div style='font-weight:1000;'>☁️ Tiempo</div>"
-            "<div class='small-note'>No se pudo cargar ahora mismo.</div></div>",
-            unsafe_allow_html=True,
-        )
+        w = fetch_weather_openmeteo(lat, lon)
+    except Exception as e:
+        st.markdown("<div class='ts-card pad'>", unsafe_allow_html=True)
+        st.markdown("🌦️ <b>Tiempo (previsión)</b>", unsafe_allow_html=True)
+        st.error(f"No se pudo cargar la previsión ahora mismo: {e}")
+        st.markdown("</div>", unsafe_allow_html=True)
         return
 
-    temp = cw.get("temperature", None)
-    wind = cw.get("windspeed", None)
-    wdir = cw.get("winddirection", None)
-    tstr = f"{temp:.0f}°C" if isinstance(temp, (int, float)) else "—"
-    wstr = f"{wind:.0f} km/h" if isinstance(wind, (int, float)) else "—"
-    dstr = f"{wdir:.0f}°" if isinstance(wdir, (int, float)) else "—"
-    ttime = cw.get("time", "")
+    cur = w.get("current", {}) or {}
+    hourly = w.get("hourly", {}) or {}
+    daily = w.get("daily", {}) or {}
 
-    html = f"""
-    <div class="ts-card">
-      <div class="ts-row">
-        <div style="font-weight:1000;">☁️ Tiempo (Donostia)</div>
-        <div class="small-note mono">{ttime}</div>
-      </div>
-      <div class="ts-chiprow" style="margin-top:8px;">
-        <div class="ts-chip">🌡️ <b>{tstr}</b></div>
-        <div class="ts-chip">💨 <b>{wstr}</b></div>
-        <div class="ts-chip">🧭 <b>{dstr}</b></div>
-      </div>
-      <div class="small-note" style="margin-top:6px;">Widget ligero (Open-Meteo). Útil para entrenos/partidos.</div>
-    </div>
-    """
-    st.markdown(html, unsafe_allow_html=True)
+    # current
+    t = cur.get("temperature_2m", None)
+    feel = cur.get("apparent_temperature", None)
+    hum = cur.get("relative_humidity_2m", None)
+    wind = cur.get("wind_speed_10m", None)
+    precip = cur.get("precipitation", None)
+
+    st.markdown("<div class='ts-card pad'>", unsafe_allow_html=True)
+    st.markdown("🌦️ <b>Tiempo · Donostia</b> <span class='small-note'>(previsión completa)</span>", unsafe_allow_html=True)
+
+    c1, c2, c3 = st.columns([1.05, 0.95, 1.0], gap="small")
+    with c1:
+        st.markdown(f"<div class='small-note'>Ahora</div><div style='font-size:1.4rem; font-weight:1000;'>{'' if t is None else f'{t:.0f}°C'}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='small-note'>Sensación: {'' if feel is None else f'{feel:.0f}°C'}</div>", unsafe_allow_html=True)
+    with c2:
+        st.markdown(f"<div class='small-note'>Humedad</div><div style='font-size:1.15rem; font-weight:950;'>{'' if hum is None else f'{hum:.0f}%'}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='small-note'>Viento: {'' if wind is None else f'{wind:.0f} km/h'}</div>", unsafe_allow_html=True)
+    with c3:
+        st.markdown(f"<div class='small-note'>Precipitación</div><div style='font-size:1.15rem; font-weight:950;'>{'' if precip is None else f'{precip:.1f} mm'}</div>", unsafe_allow_html=True)
+        st.markdown("<div class='small-note'>Fuente: Open-Meteo</div>", unsafe_allow_html=True)
+
+    # Next 24h line chart (temps)
+    times = hourly.get("time", []) or []
+    temps = hourly.get("temperature_2m", []) or []
+    pop = hourly.get("precipitation_probability", []) or []
+    if times and temps:
+        n = min(24, len(temps))
+        st.divider()
+        st.markdown("<div style='font-weight:1000;'>Próximas 24h (temperatura)</div>", unsafe_allow_html=True)
+        st.line_chart(temps[:n], height=165)
+
+        # quick row: precip probability max in next 24h
+        try:
+            pop_max = max([p for p in pop[:n] if p is not None], default=None)
+        except Exception:
+            pop_max = None
+        if pop_max is not None:
+            st.markdown(f"<div class='small-note'>Máx. prob. lluvia (24h): <b>{pop_max:.0f}%</b></div>", unsafe_allow_html=True)
+
+    # 7-day table
+    d_time = daily.get("time", []) or []
+    tmax = daily.get("temperature_2m_max", []) or []
+    tmin = daily.get("temperature_2m_min", []) or []
+    popm = daily.get("precipitation_probability_max", []) or []
+    wmax = daily.get("wind_speed_10m_max", []) or []
+    if d_time:
+        st.divider()
+        st.markdown("<div style='font-weight:1000;'>7 días</div>", unsafe_allow_html=True)
+        rows = []
+        for i in range(min(7, len(d_time))):
+            rows.append(
+                {
+                    "Día": str(d_time[i]),
+                    "Máx (°C)": None if i >= len(tmax) else tmax[i],
+                    "Mín (°C)": None if i >= len(tmin) else tmin[i],
+                    "Lluvia máx (%)": None if i >= len(popm) else popm[i],
+                    "Viento máx (km/h)": None if i >= len(wmax) else wmax[i],
+                }
+            )
+        st.dataframe(rows, use_container_width=True, hide_index=True)
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ==========================================================
@@ -1119,13 +1149,11 @@ def ss_init():
     if "authed" not in st.session_state:
         st.session_state.authed = False
 
-    # ✅ NUEVO (solo UX): transiciones de página
-    if "prev_page" not in st.session_state:
-        st.session_state.prev_page = st.session_state.page
-    if "page_anim_dir" not in st.session_state:
-        st.session_state.page_anim_dir = "right"
-    if "page_anim_token" not in st.session_state:
-        st.session_state.page_anim_token = 0
+    # NEW: animation key (visual only)
+    if "_prev_page" not in st.session_state:
+        st.session_state._prev_page = st.session_state.page
+    if "_page_anim_key" not in st.session_state:
+        st.session_state._page_anim_key = "init"
 
 
 ss_init()
@@ -1148,38 +1176,6 @@ def small_note(txt: str):
 
 def title_h(txt: str):
     st.markdown(f"## {txt}")
-
-
-# ==========================================================
-# PAGE TRANSITION HELPERS (solo visual)
-# ==========================================================
-_PAGE_ORDER = ["LIVE", "ANALYSIS", "STATS", "NEWS", "PSICO"]
-
-
-def _page_index(p: str) -> int:
-    try:
-        return _PAGE_ORDER.index(p)
-    except Exception:
-        return 0
-
-
-def _bump_page_anim_if_changed(new_page: str):
-    old = st.session_state.get("prev_page", new_page)
-    if new_page != old:
-        st.session_state.page_anim_dir = "right" if _page_index(new_page) >= _page_index(old) else "left"
-        st.session_state.page_anim_token = int(st.session_state.get("page_anim_token", 0)) + 1
-        st.session_state.prev_page = new_page
-
-
-def page_anim_start():
-    # token para forzar “nuevo DOM” y que se ejecute la animación
-    tok = int(st.session_state.get("page_anim_token", 0))
-    direction = st.session_state.get("page_anim_dir", "right")
-    st.markdown(f"<div class='ts-page-anim {direction}' data-anim='{tok}'>", unsafe_allow_html=True)
-
-
-def page_anim_end():
-    st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ==========================================================
@@ -1394,9 +1390,6 @@ nav = st.segmented_control(" ", options=labels, default=current_label, label_vis
 if nav and page_map.get(nav) != st.session_state.page:
     st.session_state.page = page_map[nav]
 
-# ✅ activar transiciones cuando cambia la página (solo visual)
-_bump_page_anim_if_changed(st.session_state.page)
-
 with st.sidebar:
     st.markdown("### 🎾 TennisStats")
     st.caption("Panel (en móvil puedes colapsarlo)")
@@ -1405,10 +1398,6 @@ with st.sidebar:
     cur_full = next((k for k, v in full_map.items() if v == st.session_state.page), "🎾 LIVE")
     choice = st.radio("Página", list(full_map.keys()), index=list(full_map.keys()).index(cur_full))
     st.session_state.page = full_map[choice]
-
-    # ✅ por si el cambio viene del sidebar
-    _bump_page_anim_if_changed(st.session_state.page)
-
     st.divider()
     if st.button("🚪 Salir", use_container_width=True):
         st.session_state.authed = False
@@ -1417,6 +1406,11 @@ with st.sidebar:
         st.session_state.page = "LIVE"
         st.session_state.finish = None
         st.rerun()
+
+# NEW: update animation key only if page changed (visual only)
+if st.session_state.page != st.session_state._prev_page:
+    st.session_state._page_anim_key = secrets.token_hex(4)
+    st.session_state._prev_page = st.session_state.page
 
 # TOP DASHBOARD (visual, compact)
 total_pts, won_pts, pct_pts = live.points_stats()
@@ -1445,17 +1439,20 @@ with top1:
 with top2:
     ring("Prob. victoria", p_match, "Modelo Markov", "var(--accent2)")
 
+# NEW: animated wrapper for page content (visual only)
+st.markdown(
+    f"<div class='ts-page-anim' id='ts_anim_{st.session_state._page_anim_key}'>",
+    unsafe_allow_html=True,
+)
 
 # ==========================================================
 # PAGE: LIVE
 # ==========================================================
 if st.session_state.page == "LIVE":
-    page_anim_start()
-
     title_h("LIVE MATCH")
 
-    # ✅ NUEVO (solo UX): widget del tiempo en LIVE
-    weather_widget_card()
+    # NEW: Weather widget (previsión completa) — solo UI
+    render_weather_widget()
 
     st_ = live.state
     pts_label = f"TB {st_.pts_me}-{st_.pts_opp}" if st_.in_tiebreak else game_point_label(st_.pts_me, st_.pts_opp)
@@ -1728,15 +1725,11 @@ if st.session_state.page == "LIVE":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    page_anim_end()
-
 
 # ==========================================================
 # PAGE: ANALYSIS
 # ==========================================================
 elif st.session_state.page == "ANALYSIS":
-    page_anim_start()
-
     title_h("Analysis")
 
     st.markdown("<div class='ts-card pad'>", unsafe_allow_html=True)
@@ -1756,7 +1749,6 @@ elif st.session_state.page == "ANALYSIS":
 
     st.markdown("<div class='ts-card pad'>", unsafe_allow_html=True)
     st.markdown(f"{icon_svg('shield')} <b>Puntos de presión (live)</b>", unsafe_allow_html=True)
-    small_note(f"p(punto)≈{p_point:.2f} · Win Prob≈{p_match:.1f}%")
     pressure_total = sum(1 for p in live.points if p.get("pressure"))
     pressure_won = sum(1 for p in live.points if p.get("pressure") and p.get("result") == "win")
     pressure_pct = (pressure_won / pressure_total * 100.0) if pressure_total else 0.0
@@ -1764,15 +1756,11 @@ elif st.session_state.page == "ANALYSIS":
     st.write(f"**{pressure_won}/{pressure_total}** ganados ({pressure_pct:.0f}%) en deuce/tiebreak.")
     st.markdown("</div>", unsafe_allow_html=True)
 
-    page_anim_end()
-
 
 # ==========================================================
 # PAGE: STATS
 # ==========================================================
 elif st.session_state.page == "STATS":
-    page_anim_start()
-
     title_h("Stats")
 
     st.markdown("<div class='ts-card'>", unsafe_allow_html=True)
@@ -1823,10 +1811,10 @@ elif st.session_state.page == "STATS":
     surf = agg["surfaces"]
     chart_data = {}
     for srf in SURFACES:
-        w = surf.get(srf, {}).get("w", 0)
+        w_ = surf.get(srf, {}).get("w", 0)
         t_ = surf.get(srf, {}).get("t", 0)
-        pct = (w / t_ * 100.0) if t_ else 0.0
-        st.write(f"**{srf}:** {pct:.0f}%  ({w} de {t_})")
+        pct = (w_ / t_ * 100.0) if t_ else 0.0
+        st.write(f"**{srf}:** {pct:.0f}%  ({w_} de {t_})")
         chart_data[srf] = pct
 
     if any(v > 0 for v in chart_data.values()):
@@ -1835,15 +1823,11 @@ elif st.session_state.page == "STATS":
         small_note("Aún no hay datos suficientes para mostrar el gráfico por superficies.")
     st.markdown("</div>", unsafe_allow_html=True)
 
-    page_anim_end()
-
 
 # ==========================================================
 # PAGE: NEWS
 # ==========================================================
 elif st.session_state.page == "NEWS":
-    page_anim_start()
-
     title_h("Noticias (tenis)")
     small_note("Últimas noticias desde fuentes públicas (RSS). Si alguna fuente falla, se muestra el resto.")
 
@@ -1873,15 +1857,11 @@ elif st.session_state.page == "NEWS":
                 st.markdown(f"- **[{title}]({link})**  \n  <span class='small-note'>{src}</span>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    page_anim_end()
-
 
 # ==========================================================
 # PAGE: PSICO
 # ==========================================================
 else:
-    page_anim_start()
-
     title_h("Psico")
     small_note("Material en PDF (visible y descargable).")
 
@@ -1924,4 +1904,5 @@ else:
                 st.components.v1.html(html, height=680, scrolling=False)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    page_anim_end()
+# Close animated wrapper (visual only)
+st.markdown("</div>", unsafe_allow_html=True)
